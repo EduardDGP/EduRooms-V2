@@ -141,7 +141,7 @@ La aplicación estará disponible en **http://localhost:5173**
 
 ---
 
-## 🔑 Acceso inicial
+## 🔑 Acceso de pruebas de ADMIN
 
 Al arrancar el backend por primera vez se crea automáticamente la cuenta del director:
 
