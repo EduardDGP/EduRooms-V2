@@ -55,7 +55,7 @@ export default function Register({ toast }) {
 
         <div style={{ background:'var(--primary-pale)', border:'1.5px solid #6ee7b7', borderRadius:10, padding:'12px 16px', marginBottom:20, fontSize:13, color:'var(--primary-dark)', display:'flex', gap:10 }}>
           <span>ℹ️</span>
-          <span>Solo el profesorado del IES Meléndez Valdés puede registrarse. Tu cuenta quedará pendiente hasta que el director la apruebe.</span>
+          <span>Solo el profesorado del centro puede registrarse. Tu cuenta quedará pendiente hasta que el director la apruebe.</span>
         </div>
 
         {error && <div className="error-box">⚠️ {error}</div>}

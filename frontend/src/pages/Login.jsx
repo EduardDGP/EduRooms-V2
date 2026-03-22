@@ -60,7 +60,7 @@ export default function Login({ toast }) {
         <div style={{ width:'100%', maxWidth:360 }}>
           <div style={{ marginBottom:32 }}>
             <h1 style={{ fontSize:26, fontWeight:800, color:'var(--black)', letterSpacing:'-0.5px' }}>Iniciar sesión</h1>
-            <p style={{ color:'var(--text3)', fontSize:14, marginTop:4 }}>IES Meléndez Valdés · Villafranca de los Barros</p>
+            <p style={{ color:'var(--text3)', fontSize:14, marginTop:4 }}>Centro Educativo</p>
           </div>
 
           {error && <div className="error-box">⚠️ {error}</div>}
@@ -87,7 +87,7 @@ export default function Login({ toast }) {
           <div style={{ marginTop:36, padding:14, background:'var(--bg)', borderRadius:10, border:'1.5px solid var(--border)' }}>
             <div style={{ fontSize:11, fontWeight:700, color:'var(--text3)', textTransform:'uppercase', letterSpacing:'.5px', marginBottom:6 }}>Acceso director</div>
             <div style={{ fontSize:12, color:'var(--text2)', fontFamily:'Fira Code, monospace' }}>
-              director@iesmelendez.es<br/>director1234
+              director@edurooms.es<br/>director1234
             </div>
           </div>
         </div>

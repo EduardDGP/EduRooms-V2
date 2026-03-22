@@ -1,4 +1,4 @@
-// Franjas horarias del IES Melendev Valdés — Villafranca de los Barros
+// Franjas horarias del centro educativo
 export const FRANJAS = [
   { id: 'h1', label: '1ª hora',  orden: 1, inicio: '08:15', fin: '09:10' },
   { id: 'h2', label: '2ª hora',  orden: 2, inicio: '09:10', fin: '10:05' },

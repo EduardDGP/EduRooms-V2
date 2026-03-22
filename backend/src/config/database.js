@@ -120,15 +120,15 @@ function initDB() {
   }
 
   // ── Seed: cuenta director ─────────────────────────────
-  // Email: director@iesmelendez.es  /  Contraseña: director1234
+  // Email: director@edurooms.es  /  Contraseña: director1234
   const director = db.prepare("SELECT id FROM profesores WHERE rol = 'director'").get()
   if (!director) {
     const hash = bcrypt.hashSync('director1234', 10)
     db.prepare(`
       INSERT INTO profesores (nombre, apellidos, email, password, asignatura, rol, aprobado)
       VALUES (?, ?, ?, ?, ?, 'director', 1)
-    `).run('Director', 'del Centro', 'director@iesmelendez.es', hash, 'Dirección')
-    console.log('✅  Cuenta director creada — director@iesmelendez.es / director1234')
+    `).run('Director', 'del Centro', 'director@edurooms.es', hash, 'Dirección')
+    console.log('✅  Cuenta director creada — director@edurooms.es / director1234')
   }
 
   console.log('✅  Base de datos lista en', DB_PATH)
