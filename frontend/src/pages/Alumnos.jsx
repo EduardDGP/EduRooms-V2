@@ -1,54 +1,40 @@
 import { useState, useEffect, useRef } from 'react'
+import * as XLSX from 'xlsx'
 import { getCursos, getAlumnos, importarAlumnos, borrarGrupo } from '../api/client'
 
 const CURSOS_ORDEN = ['1º ESO','2º ESO','3º ESO','4º ESO','1º Bach','2º Bach','FP Básica','CFGM','CFGS']
 
-// ── Parser nativo de XLS Rayuela ──────────────────────────
-// Formato: "Apellidos, Nombre" intercalado con "1º ESO C" como marcador de grupo
+// ── Parser usando xlsx ────────────────────────────────────
+// Lee la hoja tal como aparece visualmente
+// Columna 0: Apellidos, Nombre  (ej: "Álvarez Litón, Pablo")
+// Columna 1: Grupo              (ej: "1º ESO C")
 function parsearRayuela(buffer) {
-  const bytes = new Uint8Array(buffer)
+  const wb   = XLSX.read(buffer, { type: 'array' })
+  const ws   = wb.Sheets[wb.SheetNames[0]]
+  const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' })
 
-  // Decodificar como latin-1
-  let full = ''
-  for (let i = 0; i < bytes.length; i++) {
-    const b = bytes[i]
-    full += (b >= 32 && b < 127) || b >= 160 ? String.fromCharCode(b) : '|'
-  }
-
-  // Encontrar zona de alumnos
-  const idx = full.indexOf('Alumnado')
-  if (idx < 0) return {}
-  const zona = full.slice(idx)
-
-  // Extraer tokens limpiando separadores
-  const tokens = zona
-    .split(/\|+/)
-    .map(t => t.trim().replace(/["""]/g, '').trim())
-    .filter(t => t.length > 1)
-
-  // Parsear: cuando aparece "Xº ESO Y" o "Xº Bach Y" cambiamos de grupo activo
   const agrupado = {}
-  let grupoActual = null
 
-  for (const token of tokens) {
-    // Detectar marcador de grupo: "1º ESO C", "2º ESO A", "1º Bach B", etc.
-    const matchGrupo = token.match(/^\d[º°]\s*(?:ESO|Bach|FP|CFG\w*)\s*([A-Z])$/i)
-    if (matchGrupo) {
-      grupoActual = matchGrupo[1].toUpperCase()
-      if (!agrupado[grupoActual]) agrupado[grupoActual] = []
-      continue
-    }
+  for (const row of rows) {
+    const col0 = String(row[0] || '').trim()
+    const col1 = String(row[1] || '').trim()
 
-    // Detectar alumno: "Apellidos, Nombre" o "Apellidos , Nombre"
-    const matchAlumno = token.match(/^([^,]+),\s*(.+)$/)
-    if (matchAlumno && grupoActual) {
-      const apellidos = matchAlumno[1].trim()
-      const nombre    = matchAlumno[2].trim()
-      // Filtrar tokens que no son nombres (cabeceras, avisos legales, etc.)
-      if (apellidos.length > 1 && nombre.length > 1 && !apellidos.includes(' ') || apellidos.split(' ').length <= 3) {
-        agrupado[grupoActual].push({ apellidos, nombre })
-      }
-    }
+    // La fila de alumno tiene "Apellidos, Nombre" en col0
+    // y el grupo "Xº ESO Y" en col1
+    if (!col0.includes(',')) continue
+
+    // Extraer letra del grupo desde col1: "1º ESO C" → "C"
+    const grupoMatch = col1.match(/([A-Z])\s*$/)
+    if (!grupoMatch) continue
+
+    const grupo     = grupoMatch[1].toUpperCase()
+    const partes    = col0.split(',')
+    const apellidos = partes[0].trim()
+    const nombre    = partes.slice(1).join(',').trim()
+
+    if (!apellidos || !nombre) continue
+    if (!agrupado[grupo]) agrupado[grupo] = []
+    agrupado[grupo].push({ apellidos, nombre })
   }
 
   return agrupado
@@ -94,17 +80,17 @@ export default function Alumnos({ toast }) {
     const file = e.target.files[0]
     if (!file) return
     try {
-      const buffer  = await file.arrayBuffer()
-      const grupos  = parsearRayuela(buffer)
-      const total   = Object.values(grupos).reduce((s, a) => s + a.length, 0)
+      const buffer = await file.arrayBuffer()
+      const grupos = parsearRayuela(buffer)
+      const total  = Object.values(grupos).reduce((s, a) => s + a.length, 0)
 
       if (total === 0) {
-        toast('No se detectaron alumnos. ¿Es el archivo de Rayuela?', 'error')
+        toast('No se detectaron alumnos. ¿Es el archivo exportado de Rayuela?', 'error')
         return
       }
 
       setResumen(grupos)
-      toast(`✅ ${total} alumnos en ${Object.keys(grupos).length} grupos: ${Object.keys(grupos).sort().join(', ')}`, 'success')
+      toast(`✅ ${total} alumnos detectados en grupos: ${Object.keys(grupos).sort().join(', ')}`, 'success')
     } catch (err) {
       toast('Error al leer el archivo: ' + err.message, 'error')
     }
@@ -114,7 +100,6 @@ export default function Alumnos({ toast }) {
     e.preventDefault()
     if (!impCurso) { toast('Elige el curso', 'error'); return }
     if (Object.keys(resumen).length === 0) { toast('Carga un Excel primero', 'error'); return }
-
     setImportando(true)
     try {
       for (const [grupo, alums] of Object.entries(resumen)) {
@@ -153,7 +138,6 @@ export default function Alumnos({ toast }) {
       </div>
 
       <div style={{ display:'grid', gridTemplateColumns:'260px 1fr', gap:20 }}>
-        {/* Sidebar */}
         <div className="card" style={{ padding:16, alignSelf:'start' }}>
           <div style={{ fontSize:12, fontWeight:700, color:'var(--text3)', textTransform:'uppercase', letterSpacing:'.5px', marginBottom:12 }}>Cursos y grupos</div>
           {loading ? <p style={{ color:'var(--text3)', fontSize:13 }}>Cargando...</p>
@@ -182,7 +166,6 @@ export default function Alumnos({ toast }) {
           ))}
         </div>
 
-        {/* Lista alumnos */}
         <div className="card">
           {!selCurso ? (
             <div style={{ textAlign:'center', padding:'60px 0', color:'var(--text3)' }}>
@@ -218,7 +201,6 @@ export default function Alumnos({ toast }) {
         </div>
       </div>
 
-      {/* Modal importar */}
       {showImport && (
         <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.5)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1000, backdropFilter:'blur(4px)' }}
           onClick={e => { if(e.target===e.currentTarget){setShowImport(false);setResumen({})} }}>
@@ -226,7 +208,7 @@ export default function Alumnos({ toast }) {
             <div style={{ padding:'24px 28px', borderBottom:'1px solid var(--border)', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
               <div>
                 <h2 style={{ fontSize:18, fontWeight:800 }}>📥 Importar Excel de alumnos</h2>
-                <p style={{ fontSize:13, color:'var(--text3)', marginTop:2 }}>Los grupos se detectan automáticamente del archivo Rayuela</p>
+                <p style={{ fontSize:13, color:'var(--text3)', marginTop:2 }}>Formato Rayuela — grupos detectados automáticamente</p>
               </div>
               <button onClick={() => {setShowImport(false);setResumen({})}} style={{ background:'none', border:'none', fontSize:22, cursor:'pointer', color:'var(--text3)' }}>×</button>
             </div>
