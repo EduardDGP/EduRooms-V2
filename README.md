@@ -161,7 +161,7 @@ Al arrancar el backend por primera vez se crea automáticamente la cuenta del di
 
 | Campo | Valor |
 |-------|-------|
-| Email | `director@iesmelendez.es` |
+| Email | `director@edurooms.es` |
 | Contraseña | `director1234` |
 
 > ⚠️ Se recomienda cambiar la contraseña después del primer acceso.

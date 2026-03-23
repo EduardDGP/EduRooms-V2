@@ -66,6 +66,12 @@ router.post('/', (req, res) => {
     return res.status(400).json({ error: 'Todos los campos son obligatorios' })
   }
 
+  // No permitir reservas en fechas pasadas
+  const hoy = new Date().toISOString().split('T')[0]
+  if (fecha < hoy) {
+    return res.status(400).json({ error: 'No puedes reservar en una fecha pasada' })
+  }
+
   const db = getDB()
 
   const conflicto = db.prepare(`
@@ -82,10 +88,26 @@ router.post('/', (req, res) => {
   `).run(aula_id, req.profesorId, asignatura, fecha, franja_id, franja_label, franja_orden || 0, hora_inicio, hora_fin)
 
   const reserva = db.prepare(`
-    SELECT r.*, a.nombre as aula_nombre
-    FROM reservas r JOIN aulas a ON a.id = r.aula_id
+    SELECT r.*, a.nombre as aula_nombre, p.nombre as prof_nombre, p.apellidos as prof_apellidos
+    FROM reservas r
+    JOIN aulas a ON a.id = r.aula_id
+    JOIN profesores p ON p.id = r.profesor_id
     WHERE r.id = ?
   `).get(result.lastInsertRowid)
+
+  // Notificar a todos los profesores excepto al que hizo la reserva
+  const fechaLabel = new Date(fecha + 'T12:00:00').toLocaleDateString('es-ES', { weekday:'long', day:'numeric', month:'long' })
+  const profesores = db.prepare("SELECT id FROM profesores WHERE aprobado = 1 AND id != ?").all(req.profesorId)
+  const insNotif = db.prepare('INSERT INTO notificaciones (profesor_id, tipo, titulo, mensaje) VALUES (?, ?, ?, ?)')
+  const notifTx = db.transaction((profs) => {
+    for (const p of profs) {
+      insNotif.run(p.id, 'reserva',
+        `Nueva reserva — ${reserva.aula_nombre}`,
+        `${reserva.prof_nombre} ${reserva.prof_apellidos} ha reservado ${reserva.aula_nombre} el ${fechaLabel} (${franja_label})`
+      )
+    }
+  })
+  notifTx(profesores)
 
   res.status(201).json(reserva)
 })

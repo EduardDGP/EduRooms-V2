@@ -1,15 +1,16 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './hooks/useAuth'
 import { useToast } from './hooks/useToast'
-import Login    from './pages/Login'
-import Register from './pages/Register'
-import Layout   from './components/shared/Layout'
-import Aulas    from './pages/Aulas'
-import Social   from './pages/Social'
-import Perfil   from './pages/Perfil'
-import Admin    from './pages/Admin'
-import Alumnos  from './pages/Alumnos'
-import Toast    from './components/shared/Toast'
+import Login          from './pages/Login'
+import Register       from './pages/Register'
+import Layout         from './components/shared/Layout'
+import Aulas          from './pages/Aulas'
+import Social         from './pages/Social'
+import Perfil         from './pages/Perfil'
+import Admin          from './pages/Admin'
+import Alumnos        from './pages/Alumnos'
+import Notificaciones from './pages/Notificaciones'
+import Toast          from './components/shared/Toast'
 
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth()
@@ -30,7 +31,6 @@ function PublicRoute({ children }) {
 
 function AppInner() {
   const { toasts, showToast } = useToast()
-
   return (
     <>
       <Routes>
@@ -38,11 +38,12 @@ function AppInner() {
         <Route path="/registro" element={<PublicRoute><Register toast={showToast} /></PublicRoute>} />
         <Route path="/" element={<PrivateRoute><Layout toast={showToast} /></PrivateRoute>}>
           <Route index element={<Navigate to="/aulas" replace />} />
-          <Route path="aulas"   element={<Aulas   toast={showToast} />} />
-          <Route path="social"  element={<Social  toast={showToast} />} />
-          <Route path="perfil"  element={<Perfil  toast={showToast} />} />
-          <Route path="admin"   element={<Admin   toast={showToast} />} />
-          <Route path="alumnos" element={<Alumnos toast={showToast} />} />
+          <Route path="aulas"          element={<Aulas          toast={showToast} />} />
+          <Route path="social"         element={<Social         toast={showToast} />} />
+          <Route path="perfil"         element={<Perfil         toast={showToast} />} />
+          <Route path="admin"          element={<Admin          toast={showToast} />} />
+          <Route path="alumnos"        element={<Alumnos        toast={showToast} />} />
+          <Route path="notificaciones" element={<Notificaciones toast={showToast} />} />
         </Route>
       </Routes>
       <Toast toasts={toasts} />

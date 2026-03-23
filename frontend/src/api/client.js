@@ -49,7 +49,13 @@ export const getMensajes      = (contactoId) => req('GET',    `/social/mensajes/
 export const enviarMensaje    = (body)       => req('POST',   '/social/mensajes', body)
 
 // ── Perfil ────────────────────────────────────────────────
-export const getPerfil = () => req('GET', '/perfil')
+export const getPerfil    = ()     => req('GET', '/perfil')
+export const editarPerfil = (body) => req('PUT', '/perfil', body)
+
+// ── Notificaciones ────────────────────────────────────────
+export const getNotificaciones  = ()  => req('GET', '/notificaciones')
+export const getNoLeidas        = ()  => req('GET', '/notificaciones/no-leidas')
+export const leerTodasNotifs    = ()  => req('PUT', '/notificaciones/leer-todas')
 
 // ── Baño ──────────────────────────────────────────────────
 export const getSalidasBano   = ()     => req('GET',    '/bano')

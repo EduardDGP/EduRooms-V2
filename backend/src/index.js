@@ -10,7 +10,8 @@ const socialRoutes  = require('./routes/social')
 const perfilRoutes  = require('./routes/perfil')
 const banoRoutes    = require('./routes/bano')
 const adminRoutes   = require('./routes/admin')
-const alumnosRoutes = require('./routes/alumnos')
+const alumnosRoutes       = require('./routes/alumnos')
+const notificacionesRoutes= require('./routes/notificaciones')
 
 const app  = express()
 const PORT = 3001
@@ -26,7 +27,8 @@ app.use('/api/social',  socialRoutes)
 app.use('/api/perfil',  perfilRoutes)
 app.use('/api/bano',    banoRoutes)
 app.use('/api/admin',   adminRoutes)
-app.use('/api/alumnos', alumnosRoutes)
+app.use('/api/alumnos',        alumnosRoutes)
+app.use('/api/notificaciones', notificacionesRoutes)
 
 app.get('/api/health', (req, res) => res.json({ ok: true }))
 

@@ -64,12 +64,15 @@ export default function AulaDetalle({ aula, onClose, toast, onReservaChange }) {
     } catch (err) { toast(err.message, 'error') }
   }
 
-  // Navegar días
+  // Navegar días — no permite ir a días pasados
   function cambiarDia(delta) {
     const d = new Date(fecha)
     d.setDate(d.getDate() + delta)
-    setFecha(d.toISOString().split('T')[0])
+    const nueva = d.toISOString().split('T')[0]
+    if (nueva >= TODAY) setFecha(nueva)
   }
+
+  const esPasado = fecha < TODAY
 
   const fechaLabel = new Date(fecha + 'T12:00:00').toLocaleDateString('es-ES', {
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
@@ -113,11 +116,12 @@ export default function AulaDetalle({ aula, onClose, toast, onReservaChange }) {
 
         {/* Selector de fecha */}
         <div style={{ padding: '16px 28px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 10 }}>
-          <button onClick={() => cambiarDia(-1)} style={{ background: 'none', border: '1.5px solid var(--border)', borderRadius: 8, width: 34, height: 34, cursor: 'pointer', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>‹</button>
+          <button onClick={() => cambiarDia(-1)} disabled={fecha <= TODAY} style={{ background: 'none', border: '1.5px solid var(--border)', borderRadius: 8, width: 34, height: 34, cursor: fecha <= TODAY ? 'not-allowed' : 'pointer', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: fecha <= TODAY ? .3 : 1 }}>‹</button>
           <input
             type="date"
             value={fecha}
-            onChange={e => setFecha(e.target.value)}
+            min={TODAY}
+            onChange={e => { if (e.target.value >= TODAY) setFecha(e.target.value) }}
             style={{ flex: 1, textAlign: 'center', fontWeight: 600, fontSize: 14, borderRadius: 8, border: '1.5px solid var(--border)', padding: '7px 12px' }}
           />
           <button onClick={() => cambiarDia(1)} style={{ background: 'none', border: '1.5px solid var(--border)', borderRadius: 8, width: 34, height: 34, cursor: 'pointer', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>›</button>
@@ -175,11 +179,12 @@ export default function AulaDetalle({ aula, onClose, toast, onReservaChange }) {
 
                   {/* Acción */}
                   {libre && (
-                    <button className="btn btn-primary btn-sm" onClick={() => {
+                    <button className="btn btn-primary btn-sm" disabled={esPasado} onClick={() => {
+                      if (esPasado) return
                       setModal(franja)
                       setAsignatura(user.asignatura + ' — ')
-                    }}>
-                      Reservar
+                    }} style={{ opacity: esPasado ? .4 : 1, cursor: esPasado ? 'not-allowed' : 'pointer' }}>
+                      {esPasado ? 'Pasado' : 'Reservar'}
                     </button>
                   )}
                   {isMine && (

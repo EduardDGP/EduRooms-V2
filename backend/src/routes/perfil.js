@@ -67,3 +67,20 @@ router.get('/', (req, res) => {
 })
 
 module.exports = router
+
+// ── PUT /api/perfil ───────────────────────────────────────
+// Editar nombre, apellidos, asignatura
+router.put('/', (req, res) => {
+  const { nombre, apellidos, asignatura } = req.body
+  if (!nombre?.trim() || !apellidos?.trim() || !asignatura?.trim()) {
+    return res.status(400).json({ error: 'Nombre, apellidos y asignatura son obligatorios' })
+  }
+  const db = getDB()
+  db.prepare('UPDATE profesores SET nombre = ?, apellidos = ?, asignatura = ? WHERE id = ?')
+    .run(nombre.trim(), apellidos.trim(), asignatura.trim(), req.profesorId)
+
+  const prof = db.prepare(
+    'SELECT id, nombre, apellidos, email, asignatura, foto, rol, aprobado, created_at FROM profesores WHERE id = ?'
+  ).get(req.profesorId)
+  res.json(prof)
+})

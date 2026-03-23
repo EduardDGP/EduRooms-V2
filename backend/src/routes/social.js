@@ -107,6 +107,17 @@ router.post('/mensajes', (req, res) => {
   ).run(req.profesorId, para_id, texto.trim())
 
   const msg = db.prepare('SELECT * FROM mensajes WHERE id = ?').get(result.lastInsertRowid)
+
+  // Notificar al destinatario
+  const remitente = db.prepare('SELECT nombre, apellidos FROM profesores WHERE id = ?').get(req.profesorId)
+  if (remitente) {
+    db.prepare('INSERT INTO notificaciones (profesor_id, tipo, titulo, mensaje) VALUES (?, ?, ?, ?)')
+      .run(para_id, 'mensaje',
+        `Mensaje de ${remitente.nombre} ${remitente.apellidos}`,
+        texto.trim().length > 60 ? texto.trim().slice(0, 60) + '...' : texto.trim()
+      )
+  }
+
   res.status(201).json(msg)
 })
 
