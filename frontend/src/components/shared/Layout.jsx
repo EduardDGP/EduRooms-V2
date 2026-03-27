@@ -10,7 +10,7 @@ const Icons = {
   perfil:  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
   admin:   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>,
   notifs:  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>,
-  logout:  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>,
+  guardias:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>,
 }
 
 export default function Layout({ toast }) {
@@ -39,11 +39,12 @@ export default function Layout({ toast }) {
   const fotoSrc  = user?.foto ? user.foto : null
 
   const navLinks = [
-    { to:'/aulas',          icon: Icons.aulas,   label:'Aulas'           },
-    { to:'/alumnos',        icon: Icons.alumnos, label:'Alumnos'         },
-    { to:'/social',         icon: Icons.social,  label:'Social'          },
-    { to:'/notificaciones', icon: Icons.notifs,  label:'Notificaciones', badge: noLeidas },
-    { to:'/perfil',         icon: Icons.perfil,  label:'Perfil'          },
+    { to:'/aulas',          icon: Icons.aulas,    label:'Aulas'           },
+    { to:'/alumnos',        icon: Icons.alumnos,  label:'Alumnos'         },
+    { to:'/guardias',       icon: Icons.guardias, label:'Guardias'        },
+    { to:'/social',         icon: Icons.social,   label:'Social'          },
+    { to:'/notificaciones', icon: Icons.notifs,   label:'Notificaciones', badge: noLeidas },
+    { to:'/perfil',         icon: Icons.perfil,   label:'Perfil'          },
   ]
   if (isDirector) navLinks.push({ to:'/admin', icon: Icons.admin, label:'Admin' })
 

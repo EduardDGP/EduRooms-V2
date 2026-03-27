@@ -12,6 +12,7 @@ const banoRoutes    = require('./routes/bano')
 const adminRoutes   = require('./routes/admin')
 const alumnosRoutes       = require('./routes/alumnos')
 const notificacionesRoutes= require('./routes/notificaciones')
+const guardiasRoutes      = require('./routes/guardias')
 
 const app  = express()
 const PORT = 3001
@@ -29,6 +30,7 @@ app.use('/api/bano',    banoRoutes)
 app.use('/api/admin',   adminRoutes)
 app.use('/api/alumnos',        alumnosRoutes)
 app.use('/api/notificaciones', notificacionesRoutes)
+app.use('/api/guardias',       guardiasRoutes)
 
 app.get('/api/health', (req, res) => res.json({ ok: true }))
 

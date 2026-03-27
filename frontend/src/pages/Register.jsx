@@ -46,7 +46,7 @@ export default function Register({ toast }) {
       <div style={{ background:'#fff', borderRadius:20, padding:40, maxWidth:480, width:'100%', boxShadow:'0 8px 40px rgba(0,0,0,.3)' }}>
 
         <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:28 }}>
-          <img src="/logo.png" alt="Logo" style={{ width:38, height:38, objectFit:'contain', flexShrink:0 }} />
+          <img src="/logo.png" alt="Logo" style={{ width:38, height:38, objectFit:'contain', flexShrink:0, background:'#fff', borderRadius:6, padding:2 }} />
           <span style={{ fontSize:20, fontWeight:800, color:'var(--black)', letterSpacing:'-0.5px' }}>Edu<span style={{ color:'var(--primary)' }}>Rooms</span></span>
         </div>
 

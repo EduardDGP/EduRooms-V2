@@ -107,6 +107,26 @@ function initDB() {
     )
   `)
 
+  // ── Tabla: guardias ──────────────────────────────────
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS guardias (
+      id            INTEGER PRIMARY KEY AUTOINCREMENT,
+      profesor_id   INTEGER NOT NULL REFERENCES profesores(id) ON DELETE CASCADE,
+      fecha         TEXT    NOT NULL,
+      franja_id     TEXT    NOT NULL,
+      franja_label  TEXT    NOT NULL,
+      franja_orden  INTEGER NOT NULL DEFAULT 0,
+      hora_inicio   TEXT    NOT NULL DEFAULT '',
+      hora_fin      TEXT    NOT NULL DEFAULT '',
+      curso         TEXT    NOT NULL,
+      grupo         TEXT    NOT NULL,
+      aula          TEXT    NOT NULL,
+      instrucciones TEXT    NOT NULL DEFAULT '',
+      cubierta_por  INTEGER REFERENCES profesores(id) ON DELETE SET NULL,
+      created_at    TEXT    DEFAULT (datetime('now','localtime'))
+    )
+  `)
+
   // ── Tabla: notificaciones ────────────────────────────
   db.exec(`
     CREATE TABLE IF NOT EXISTS notificaciones (

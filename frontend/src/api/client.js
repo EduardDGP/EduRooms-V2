@@ -70,6 +70,14 @@ export const getAlumnos        = (curso, grupo)  => req('GET',  `/alumnos?curso=
 export const importarAlumnos   = (body)          => req('POST', '/alumnos/importar', body)
 export const borrarGrupo       = (curso, grupo)  => req('DELETE', `/alumnos/grupo?curso=${encodeURIComponent(curso)}&grupo=${encodeURIComponent(grupo)}`)
 
+// ── Guardias ──────────────────────────────────────────────
+export const getGuardias      = ()   => req('GET',    '/guardias')
+export const getGuardiasHoy   = ()   => req('GET',    '/guardias/hoy')
+export const crearGuardia     = (body) => req('POST',  '/guardias', body)
+export const cubrirGuardia    = (id)   => req('POST',  `/guardias/${id}/cubrir`)
+export const cancelarCobertura= (id)   => req('DELETE',`/guardias/${id}/cubrir`)
+export const eliminarGuardia  = (id)   => req('DELETE',`/guardias/${id}`)
+
 export async function subirFoto(file) {
   const form = new FormData()
   form.append('foto', file)

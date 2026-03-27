@@ -34,7 +34,7 @@ export default function Login({ toast }) {
       <div style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:48, background:'linear-gradient(145deg, #0a0a0a 0%, #111827 100%)', borderRight:'1px solid rgba(255,255,255,.06)' }}>
         <div style={{ maxWidth:360 }}>
           <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:48 }}>
-            <img src="/logo.png" alt="Logo" style={{ width:48, height:48, objectFit:'contain', flexShrink:0 }} />
+            <img src="/logo.png" alt="Logo" style={{ width:48, height:48, objectFit:'contain', flexShrink:0, background:'#fff', borderRadius:8, padding:3 }} />
             <span style={{ fontSize:28, fontWeight:800, color:'#fff', letterSpacing:'-0.5px' }}>Edu<span style={{ color:'var(--accent)' }}>Rooms</span></span>
           </div>
           <h2 style={{ fontSize:32, fontWeight:800, color:'#fff', lineHeight:1.2, marginBottom:16 }}>Gestión de aulas<br/>para el profesorado</h2>
