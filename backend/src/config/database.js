@@ -1,6 +1,6 @@
 const Database = require('better-sqlite3')
-const path = require('path')
-const bcrypt = require('bcryptjs')
+const path     = require('path')
+const bcrypt   = require('bcryptjs')
 
 const DB_PATH = path.join(__dirname, 'edurooms.db')
 let db
@@ -15,17 +15,31 @@ function initDB() {
   db.pragma('journal_mode = WAL')
   db.pragma('foreign_keys = ON')
 
+  // ── Tabla: centros ────────────────────────────────────
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS centros (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      nombre      TEXT    NOT NULL,
+      codigo      TEXT    NOT NULL UNIQUE,
+      ciudad      TEXT    NOT NULL DEFAULT '',
+      provincia   TEXT    NOT NULL DEFAULT '',
+      logo        TEXT    DEFAULT NULL,
+      created_at  TEXT    DEFAULT (datetime('now','localtime'))
+    )
+  `)
+
   // ── Tabla: profesores ─────────────────────────────────
-  // rol: 'director' | 'profesor'
+  // rol: 'superadmin' | 'director' | 'jefe_estudios' | 'profesor'
   // aprobado: 0 = pendiente, 1 = aprobado, 2 = rechazado
   db.exec(`
     CREATE TABLE IF NOT EXISTS profesores (
       id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      centro_id   INTEGER REFERENCES centros(id) ON DELETE CASCADE,
       nombre      TEXT    NOT NULL,
       apellidos   TEXT    NOT NULL,
       email       TEXT    NOT NULL UNIQUE,
       password    TEXT    NOT NULL,
-      asignatura  TEXT    NOT NULL,
+      asignatura  TEXT    NOT NULL DEFAULT '',
       foto        TEXT    DEFAULT NULL,
       rol         TEXT    NOT NULL DEFAULT 'profesor',
       aprobado    INTEGER NOT NULL DEFAULT 0,
@@ -37,6 +51,7 @@ function initDB() {
   db.exec(`
     CREATE TABLE IF NOT EXISTS aulas (
       id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      centro_id   INTEGER NOT NULL REFERENCES centros(id) ON DELETE CASCADE,
       nombre      TEXT    NOT NULL,
       tipo        TEXT    NOT NULL,
       capacidad   INTEGER NOT NULL DEFAULT 30,
@@ -48,6 +63,7 @@ function initDB() {
   db.exec(`
     CREATE TABLE IF NOT EXISTS reservas (
       id           INTEGER PRIMARY KEY AUTOINCREMENT,
+      centro_id    INTEGER NOT NULL REFERENCES centros(id) ON DELETE CASCADE,
       aula_id      INTEGER NOT NULL REFERENCES aulas(id)      ON DELETE CASCADE,
       profesor_id  INTEGER NOT NULL REFERENCES profesores(id) ON DELETE CASCADE,
       asignatura   TEXT    NOT NULL,
@@ -82,22 +98,11 @@ function initDB() {
     )
   `)
 
-  // ── Tabla: alumnos ───────────────────────────────────
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS alumnos (
-      id          INTEGER PRIMARY KEY AUTOINCREMENT,
-      apellidos   TEXT    NOT NULL,
-      nombre      TEXT    NOT NULL,
-      curso       TEXT    NOT NULL,
-      grupo       TEXT    NOT NULL,
-      created_at  TEXT    DEFAULT (datetime('now','localtime'))
-    )
-  `)
-
   // ── Tabla: salidas_bano ───────────────────────────────
   db.exec(`
     CREATE TABLE IF NOT EXISTS salidas_bano (
       id             INTEGER PRIMARY KEY AUTOINCREMENT,
+      centro_id      INTEGER NOT NULL REFERENCES centros(id) ON DELETE CASCADE,
       profesor_id    INTEGER NOT NULL REFERENCES profesores(id) ON DELETE CASCADE,
       alumno_nombre  TEXT    NOT NULL,
       alumno_curso   TEXT    NOT NULL,
@@ -107,10 +112,24 @@ function initDB() {
     )
   `)
 
+  // ── Tabla: alumnos ───────────────────────────────────
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS alumnos (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      centro_id   INTEGER NOT NULL REFERENCES centros(id) ON DELETE CASCADE,
+      apellidos   TEXT    NOT NULL,
+      nombre      TEXT    NOT NULL,
+      curso       TEXT    NOT NULL,
+      grupo       TEXT    NOT NULL,
+      created_at  TEXT    DEFAULT (datetime('now','localtime'))
+    )
+  `)
+
   // ── Tabla: guardias ──────────────────────────────────
   db.exec(`
     CREATE TABLE IF NOT EXISTS guardias (
       id            INTEGER PRIMARY KEY AUTOINCREMENT,
+      centro_id     INTEGER NOT NULL REFERENCES centros(id) ON DELETE CASCADE,
       profesor_id   INTEGER NOT NULL REFERENCES profesores(id) ON DELETE CASCADE,
       fecha         TEXT    NOT NULL,
       franja_id     TEXT    NOT NULL,
@@ -131,6 +150,7 @@ function initDB() {
   db.exec(`
     CREATE TABLE IF NOT EXISTS notificaciones (
       id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      centro_id   INTEGER REFERENCES centros(id) ON DELETE CASCADE,
       profesor_id INTEGER NOT NULL REFERENCES profesores(id) ON DELETE CASCADE,
       tipo        TEXT    NOT NULL,
       titulo      TEXT    NOT NULL,
@@ -140,28 +160,15 @@ function initDB() {
     )
   `)
 
-  // ── Seed: aulas de ejemplo ────────────────────────────
-  const countAulas = db.prepare('SELECT COUNT(*) as n FROM aulas').get()
-  if (countAulas.n === 0) {
-    const ins = db.prepare('INSERT INTO aulas (nombre, tipo, capacidad) VALUES (?, ?, ?)')
-    ins.run('Aula Informática 1',    'Informática',             30)
-    ins.run('Aula Informática 2',    'Informática',             28)
-    ins.run('Lab. Física',           'Laboratorio de Física',   24)
-    ins.run('Lab. Biología',         'Laboratorio de Biología', 24)
-    ins.run('Lab. Química',          'Laboratorio de Química',  22)
-    console.log('✅  Aulas de ejemplo creadas')
-  }
-
-  // ── Seed: cuenta director ─────────────────────────────
-  // Email: director@edurooms.es  /  Contraseña: director1234
-  const director = db.prepare("SELECT id FROM profesores WHERE rol = 'director'").get()
-  if (!director) {
-    const hash = bcrypt.hashSync('director1234', 10)
+  // ── Seed: superadmin ─────────────────────────────────
+  const superadmin = db.prepare("SELECT id FROM profesores WHERE rol = 'superadmin'").get()
+  if (!superadmin) {
+    const hash = bcrypt.hashSync('superadmin1234', 10)
     db.prepare(`
-      INSERT INTO profesores (nombre, apellidos, email, password, asignatura, rol, aprobado)
-      VALUES (?, ?, ?, ?, ?, 'director', 1)
-    `).run('Director', 'del Centro', 'director@edurooms.es', hash, 'Dirección')
-    console.log('✅  Cuenta director creada — director@edurooms.es / director1234')
+      INSERT INTO profesores (centro_id, nombre, apellidos, email, password, asignatura, rol, aprobado)
+      VALUES (NULL, 'Super', 'Admin', 'admin@edurooms.es', ?, 'Sistema', 'superadmin', 1)
+    `).run(hash)
+    console.log('✅  Superadmin creado — admin@edurooms.es / superadmin1234')
   }
 
   console.log('✅  Base de datos lista en', DB_PATH)

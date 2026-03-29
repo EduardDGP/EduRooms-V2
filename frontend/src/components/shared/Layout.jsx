@@ -17,6 +17,7 @@ export default function Layout({ toast }) {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const isDirector = user?.rol === 'director'
+  const isAdmin    = ['director','jefe_estudios','superadmin'].includes(user?.rol)
   const [noLeidas, setNoLeidas] = useState(0)
 
   useEffect(() => {
@@ -46,7 +47,7 @@ export default function Layout({ toast }) {
     { to:'/notificaciones', icon: Icons.notifs,   label:'Notificaciones', badge: noLeidas },
     { to:'/perfil',         icon: Icons.perfil,   label:'Perfil'          },
   ]
-  if (isDirector) navLinks.push({ to:'/admin', icon: Icons.admin, label:'Admin' })
+  if (isAdmin) navLinks.push({ to:'/admin', icon: Icons.admin, label:'Admin' })
 
   return (
     <div style={{ display:'flex', height:'100vh', background:'var(--bg)', overflow:'hidden' }}>
@@ -57,7 +58,13 @@ export default function Layout({ toast }) {
         {/* Logo */}
         <div style={{ padding:'28px 20px 24px', borderBottom:'1px solid rgba(255,255,255,.06)' }}>
           <NavLink to="/aulas" style={{ textDecoration:'none', display:'flex', alignItems:'center', gap:10 }}>
-            <img src="/logo.png" alt="Logo" style={{ width:32, height:32, objectFit:'contain', flexShrink:0, background:'#fff', borderRadius:6, padding:2 }} />
+            {user?.centro_logo ? (
+              <img src={user.centro_logo} alt="Logo centro" style={{ width:32, height:32, objectFit:'contain', flexShrink:0, background:'#fff', borderRadius:6, padding:2 }} />
+            ) : (
+              <div style={{ width:32, height:32, borderRadius:8, background:'#0a0a0a', border:'1.5px solid rgba(255,255,255,.15)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                <span style={{ fontSize:16, fontWeight:900, color:'#fff', fontFamily:'Georgia, serif', letterSpacing:'-1px' }}>E</span>
+              </div>
+            )}
             <span style={{ fontSize:17, fontWeight:800, color:'#fff', letterSpacing:'-0.5px', fontFamily:'Outfit,sans-serif' }}>
               Edu<span style={{ color:'var(--accent)' }}>Rooms</span>
             </span>
@@ -106,7 +113,7 @@ export default function Layout({ toast }) {
                 {user?.nombre} {user?.apellidos}
               </div>
               <div style={{ fontSize:11, color:'rgba(255,255,255,.35)', marginTop:1 }}>
-                {isDirector ? 'Director' : user?.asignatura}
+                {user?.rol === 'director' ? 'Director/a' : user?.rol === 'jefe_estudios' ? 'Jefe/a de Estudios' : user?.rol === 'superadmin' ? 'Superadmin' : user?.asignatura}
               </div>
             </div>
           </NavLink>
