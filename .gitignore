@@ -10,9 +10,9 @@ backend/src/config/edurooms.db-shm
 backend/uploads/
 
 # Variables de entorno
-.env
+# .env
 .env.local
-.env.production
+# .env.production
 
 # Build del frontend
 frontend/dist/

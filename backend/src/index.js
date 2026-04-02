@@ -1,5 +1,5 @@
 const express = require('express')
-const cors    = require('cors')
+app.use(cors({ origin: '*', credentials: false }))
 const path    = require('path')
 const { initDB } = require('./config/database')
 

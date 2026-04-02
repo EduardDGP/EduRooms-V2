@@ -1,4 +1,4 @@
-const BASE = (import.meta.env.VITE_API_URL || '') + '/api'
+const BASE = 'https://edurooms-v2-production.up.railway.app/api'
 
 export const getToken    = () => localStorage.getItem('edu_token')
 export const setToken    = (t) => localStorage.setItem('edu_token', t)
