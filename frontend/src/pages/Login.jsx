@@ -91,13 +91,6 @@ export default function Login({ toast }) {
             ¿Primera vez?{' '}
             <Link to="/registro" style={{ color:'var(--primary)', fontWeight:700, textDecoration:'none' }}>Solicitar acceso</Link>
           </p>
-
-          <div style={{ marginTop:40, padding:'16px', background:'var(--bg)', borderRadius:10, border:'1.5px solid var(--border)' }}>
-            <div style={{ fontSize:11, fontWeight:700, color:'var(--text3)', textTransform:'uppercase', letterSpacing:'.5px', marginBottom:8 }}>Acceso director</div>
-            <div style={{ fontSize:12, color:'var(--text2)', fontFamily:'Fira Code, monospace' }}>
-              director@edurooms.es<br/>director1234
-            </div>
-          </div>
         </div>
       </div>
     </div>
