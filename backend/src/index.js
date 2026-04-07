@@ -1,3 +1,13 @@
+process.on('uncaughtException', (err) => {
+  console.error('ERROR NO CAPTURADO:', err)
+  process.exit(1)
+})
+
+process.on('unhandledRejection', (err) => {
+  console.error('PROMESA RECHAZADA:', err)
+  process.exit(1)
+})
+
 const express = require('express')
 const cors    = require('cors')
 const path    = require('path')
@@ -40,3 +50,4 @@ initDB()
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`✅  EduRooms backend corriendo en http://localhost:${PORT}`)
 })
+
