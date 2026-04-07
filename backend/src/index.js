@@ -37,6 +37,6 @@ app.use('/api/guardias',       guardiasRoutes)
 app.get('/api/health', (req, res) => res.json({ ok: true }))
 
 initDB()
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`✅  EduRooms backend corriendo en http://localhost:${PORT}`)
 })
