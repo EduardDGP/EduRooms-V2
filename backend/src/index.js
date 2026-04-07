@@ -1,7 +1,9 @@
 const express = require('express')
 const cors    = require('cors')
 const path    = require('path')
+process.env.NODE_ENV = process.env.NODE_ENV || 'development'
 const { initDB } = require('./config/database')
+
 
 const authRoutes    = require('./routes/auth')
 const aulasRoutes   = require('./routes/aulas')

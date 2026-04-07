@@ -2,7 +2,9 @@ const Database = require('better-sqlite3')
 const path     = require('path')
 const bcrypt   = require('bcryptjs')
 
-const DB_PATH = path.join(__dirname, 'edurooms.db')
+const DB_PATH = process.env.NODE_ENV === 'production' 
+  ? '/tmp/edurooms.db' 
+  : path.join(__dirname, 'edurooms.db')
 let db
 
 function getDB() {
