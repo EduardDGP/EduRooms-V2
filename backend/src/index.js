@@ -17,7 +17,7 @@ const notificacionesRoutes= require('./routes/notificaciones')
 const guardiasRoutes      = require('./routes/guardias')
 
 const app  = express()
-const PORT = 3001
+const PORT = process.env.PORT || 3001
 
 app.use(cors({ origin: '*', credentials: false }))
 app.use(express.json())
