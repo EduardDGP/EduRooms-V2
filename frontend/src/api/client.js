@@ -1,4 +1,4 @@
-const BASE = 'https://edurooms-v2.onrender.com/api'
+const BASE = '/api'
 
 export const getToken    = () => localStorage.getItem('edu_token')
 export const setToken    = (t) => localStorage.setItem('edu_token', t)
