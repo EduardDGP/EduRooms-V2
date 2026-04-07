@@ -9,7 +9,7 @@ import Social         from './pages/Social'
 import Perfil         from './pages/Perfil'
 import Admin          from './pages/Admin'
 import Alumnos        from './pages/Alumnos'
-import Notificaciones from './pages/notificaciones'
+import Notificaciones from './pages/Notificaciones'
 import Guardias       from './pages/Guardias'
 import Toast          from './components/shared/Toast'
 
