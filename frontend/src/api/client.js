@@ -1,4 +1,4 @@
-const BASE = 'https://edurooms-v2.onrender.com/api'
+const BASE = (import.meta.env.VITE_API_URL || '') + '/api'
 //v2
 export const getToken    = () => localStorage.getItem('edu_token')
 export const setToken    = (t) => localStorage.setItem('edu_token', t)
