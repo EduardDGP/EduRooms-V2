@@ -46,8 +46,8 @@ export default function Register({ toast }) {
     setLoading(true)
     try {
       const data = await post('/auth/centro', formDir)
-      login(data.token, data.profesor)
-      navigate('/aulas')
+      // El centro queda pendiente de aprobación
+      setSuccess(true)
     } catch (err) { setError(err.message) }
     finally { setLoading(false) }
   }
@@ -58,8 +58,10 @@ export default function Register({ toast }) {
         <div style={{ width:64, height:64, borderRadius:16, background:'var(--green-pale)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:32, margin:'0 auto 20px' }}>⏳</div>
         <h2 style={{ fontSize:22, fontWeight:800, marginBottom:12 }}>Solicitud enviada</h2>
         <p style={{ color:'var(--text3)', fontSize:15, lineHeight:1.6, marginBottom:28 }}>
-          Tu cuenta está <strong>pendiente de aprobación</strong> por el director del centro.<br/><br/>
-          Recibirás acceso una vez que sea aprobada.
+          {modo === 'centro'
+            ? <>Tu solicitud de registro del centro está siendo revisada por el equipo de <strong>ExRooms</strong>. Te contactaremos en breve.</>
+            : <>Tu cuenta está <strong>pendiente de aprobación</strong> por el director del centro.<br/><br/>Recibirás acceso una vez que sea aprobada.</>
+          }
         </p>
         <Link to="/login" className="btn btn-primary btn-full" style={{ display:'block', textDecoration:'none', textAlign:'center', background:'var(--black)', color:'#fff' }}>
           Volver al inicio de sesión

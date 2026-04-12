@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from './hooks/useAuth'
 import { useToast } from './hooks/useToast'
 import Login          from './pages/Login'
 import Register       from './pages/Register'
+import RegistroCentro from './pages/RegistroCentro'
 import Layout         from './components/shared/Layout'
 import Aulas          from './pages/Aulas'
 import Social         from './pages/Social'
@@ -11,6 +12,8 @@ import Admin          from './pages/Admin'
 import Alumnos        from './pages/Alumnos'
 import Notificaciones from './pages/Notificaciones'
 import Guardias       from './pages/Guardias'
+import Superadmin     from './pages/Superadmin'
+import SuperadminLogin from './pages/SuperadminLogin'
 import Toast          from './components/shared/Toast'
 
 function PrivateRoute({ children }) {
@@ -35,8 +38,11 @@ function AppInner() {
   return (
     <>
       <Routes>
-        <Route path="/login"    element={<PublicRoute><Login    toast={showToast} /></PublicRoute>} />
-        <Route path="/registro" element={<PublicRoute><Register toast={showToast} /></PublicRoute>} />
+        <Route path="/login"           element={<PublicRoute><Login          toast={showToast} /></PublicRoute>} />
+        <Route path="/registro"        element={<PublicRoute><Register       toast={showToast} /></PublicRoute>} />
+        <Route path="/registro-centro" element={<PublicRoute><RegistroCentro toast={showToast} /></PublicRoute>} />
+        <Route path="/superadmin/login" element={<SuperadminLogin />} />
+        <Route path="/superadmin"       element={<Superadmin />} />
         <Route path="/" element={<PrivateRoute><Layout toast={showToast} /></PrivateRoute>}>
           <Route index element={<Navigate to="/aulas" replace />} />
           <Route path="aulas"          element={<Aulas          toast={showToast} />} />
@@ -54,9 +60,5 @@ function AppInner() {
 }
 
 export default function App() {
-  return (
-    <AuthProvider>
-      <AppInner />
-    </AuthProvider>
-  )
+  return <AuthProvider><AppInner /></AuthProvider>
 }

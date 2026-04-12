@@ -2,9 +2,7 @@ const Database = require('better-sqlite3')
 const path     = require('path')
 const bcrypt   = require('bcryptjs')
 
-const DB_PATH = process.env.NODE_ENV === 'production' 
-  ? '/tmp/edurooms.db' 
-  : path.join(__dirname, 'edurooms.db')
+const DB_PATH = path.join(__dirname, 'edurooms.db')
 let db
 
 function getDB() {
@@ -26,6 +24,8 @@ function initDB() {
       ciudad      TEXT    NOT NULL DEFAULT '',
       provincia   TEXT    NOT NULL DEFAULT '',
       logo        TEXT    DEFAULT NULL,
+      plan        TEXT    NOT NULL DEFAULT 'pendiente',
+      aprobado    INTEGER NOT NULL DEFAULT 0,
       created_at  TEXT    DEFAULT (datetime('now','localtime'))
     )
   `)

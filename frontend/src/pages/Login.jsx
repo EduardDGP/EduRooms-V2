@@ -21,7 +21,7 @@ export default function Login({ toast }) {
       navigate('/aulas')
     } catch (err) {
       // Detectar si es cuenta pendiente o rechazada
-      if (err.message.includes('pendiente')) setPending(true)
+      if (err.message.includes('pendiente') || err.message.includes('centro')) setPending(true)
       else setError(err.message)
     } finally {
       setLoading(false)
@@ -64,9 +64,9 @@ export default function Login({ toast }) {
           {/* Mensaje cuenta pendiente */}
           {pending && (
             <div style={{ background:'#fffbeb', border:'1.5px solid #fcd34d', borderRadius:10, padding:'16px 18px', marginBottom:20 }}>
-              <div style={{ fontWeight:700, fontSize:14, color:'#92400e', marginBottom:4 }}>⏳ Cuenta pendiente de aprobación</div>
+              <div style={{ fontWeight:700, fontSize:14, color:'#92400e', marginBottom:4 }}>⏳ Acceso pendiente</div>
               <p style={{ fontSize:13, color:'#78350f', lineHeight:1.5 }}>
-                Tu solicitud está siendo revisada por el director del centro. Recibirás acceso en cuanto sea aprobada.
+                Tu cuenta o centro está pendiente de aprobación. Si eres director, el equipo de ExRooms revisará tu solicitud en breve.
               </p>
             </div>
           )}
