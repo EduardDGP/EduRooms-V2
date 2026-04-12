@@ -66,7 +66,7 @@ export default function Layout({ toast }) {
               </div>
             )}
             <span style={{ fontSize:17, fontWeight:800, color:'#fff', letterSpacing:'-0.5px', fontFamily:'Outfit,sans-serif' }}>
-              Edu<span style={{ color:'var(--accent)' }}>Rooms</span>
+              Ex<span style={{ color:'var(--accent)' }}>Rooms</span>
             </span>
           </NavLink>
         </div>

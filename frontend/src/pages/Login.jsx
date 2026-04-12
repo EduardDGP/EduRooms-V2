@@ -35,7 +35,7 @@ export default function Login({ toast }) {
         <div style={{ maxWidth:360 }}>
           <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:48 }}>
             <div style={{ width:48, height:48, borderRadius:10, background:'#0a0a0a', border:'1.5px solid rgba(255,255,255,.15)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}><span style={{ fontSize:22, fontWeight:900, color:'#fff', fontFamily:'Georgia, serif', letterSpacing:'-1px' }}>E</span></div>
-            <span style={{ fontSize:28, fontWeight:800, color:'#fff', letterSpacing:'-0.5px' }}>Edu<span style={{ color:'var(--accent)' }}>Rooms</span></span>
+            <span style={{ fontSize:28, fontWeight:800, color:'#fff', letterSpacing:'-0.5px' }}>Ex<span style={{ color:'var(--accent)' }}>Rooms</span></span>
           </div>
           <h2 style={{ fontSize:32, fontWeight:800, color:'#fff', lineHeight:1.2, marginBottom:16 }}>Gestión de aulas<br/>para el profesorado</h2>
           <p style={{ color:'rgba(255,255,255,.45)', fontSize:15, lineHeight:1.7 }}>Reserva salas especiales, controla salidas al baño y comunícate con el equipo docente.</p>

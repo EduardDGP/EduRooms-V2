@@ -76,7 +76,7 @@ export default function Register({ toast }) {
         <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:28 }}>
           <Link to="/login" style={{ textDecoration:'none', display:'flex', alignItems:'center', gap:10 }}>
             <div style={{ width:38, height:38, borderRadius:8, background:'#0a0a0a', border:'1.5px solid rgba(0,0,0,.15)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}><span style={{ fontSize:18, fontWeight:900, color:'#fff', fontFamily:'Georgia, serif', letterSpacing:'-1px' }}>E</span></div>
-            <span style={{ fontSize:20, fontWeight:800, color:'var(--black)', letterSpacing:'-0.5px' }}>Edu<span style={{ color:'var(--primary)' }}>Rooms</span></span>
+            <span style={{ fontSize:20, fontWeight:800, color:'var(--black)', letterSpacing:'-0.5px' }}>Ex<span style={{ color:'var(--primary)' }}>Rooms</span></span>
           </Link>
         </div>
 
