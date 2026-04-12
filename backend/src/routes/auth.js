@@ -35,25 +35,22 @@ router.post('/centro', (req, res) => {
   const existeEmail = db.prepare('SELECT id FROM profesores WHERE email = ?').get(email)
   if (existeEmail) return res.status(409).json({ error: 'Este correo ya está registrado' })
 
-  // Crear centro
+  // Crear centro — queda pendiente hasta aprobación del superadmin
   const centroResult = db.prepare(
-    'INSERT INTO centros (nombre, codigo, ciudad, provincia) VALUES (?, ?, ?, ?)'
-  ).run(centro_nombre.trim(), centro_codigo.toUpperCase().trim(), centro_ciudad?.trim() || '', centro_provincia?.trim() || '')
+    'INSERT INTO centros (nombre, codigo, ciudad, provincia, plan, aprobado) VALUES (?, ?, ?, ?, ?, ?)'
+  ).run(centro_nombre.trim(), centro_codigo.toUpperCase().trim(), centro_ciudad?.trim() || '', centro_provincia?.trim() || '', 'pendiente', 0)
 
   const centroId = centroResult.lastInsertRowid
 
-  // Crear cuenta director — aprobada automáticamente
+  // Crear cuenta director — aprobada pero bloqueada hasta que el centro sea aprobado
   const hash = bcrypt.hashSync(password, 10)
   db.prepare(`
     INSERT INTO profesores (centro_id, nombre, apellidos, email, password, asignatura, rol, aprobado)
     VALUES (?, ?, ?, ?, ?, 'Dirección', 'director', 1)
   `).run(centroId, nombre.trim(), apellidos.trim(), email, hash)
 
-  const director = db.prepare('SELECT * FROM profesores WHERE email = ?').get(email)
-  const token    = generarToken(director)
-  const { password: _, ...safe } = director
-
-  res.status(201).json({ token, profesor: safe })
+  // No generamos token — el centro queda pendiente
+  res.status(201).json({ pendiente: true, mensaje: 'Solicitud enviada. El equipo de ExRooms revisará tu solicitud en breve.' })
 })
 
 // ── POST /api/auth/registro ───────────────────────────────
@@ -98,6 +95,17 @@ router.post('/login', (req, res) => {
     return res.status(403).json({ error: 'Tu cuenta está pendiente de aprobación por el director.' })
   if (profesor.aprobado === 2)
     return res.status(403).json({ error: 'Tu cuenta ha sido rechazada. Contacta con el director.' })
+
+  // Comprobar que el centro está aprobado (excepto superadmin)
+  if (profesor.rol !== 'superadmin' && profesor.centro_id) {
+    const centro = db.prepare('SELECT aprobado, plan FROM centros WHERE id = ?').get(profesor.centro_id)
+    if (!centro || centro.aprobado === 0)
+      return res.status(403).json({ error: 'Tu centro está pendiente de aprobación por el equipo de ExRooms.' })
+    if (centro.aprobado === 2)
+      return res.status(403).json({ error: 'Tu centro ha sido rechazado. Contacta con el equipo de ExRooms.' })
+    if (centro.plan === 'bloqueado')
+      return res.status(403).json({ error: 'La suscripción de tu centro ha expirado. Contacta con el equipo de ExRooms.' })
+  }
 
   const token = generarToken(profesor)
   const { password: _, ...safe } = profesor

@@ -1,130 +1,42 @@
-const express = require('express')
-const bcrypt  = require('bcryptjs')
-const { getDB } = require('../config/database')
-const { generarToken, verificarToken } = require('../middleware/auth')
+const jwt = require('jsonwebtoken')
 
-const router = express.Router()
+const SECRET = process.env.JWT_SECRET || 'edurooms_secret_local_2024'
 
-// ── GET /api/auth/centros ─────────────────────────────────
-// Lista de centros disponibles para el registro de profesores
-router.get('/centros', (req, res) => {
-  const db = getDB()
-  const centros = db.prepare(
-    'SELECT id, nombre, codigo, ciudad, provincia FROM centros ORDER BY nombre'
-  ).all()
-  res.json(centros)
-})
+function generarToken(profesor) {
+  return jwt.sign(
+    { id: profesor.id, email: profesor.email, rol: profesor.rol, centro_id: profesor.centro_id },
+    SECRET,
+    { expiresIn: '7d' }
+  )
+}
 
-// ── POST /api/auth/centro ─────────────────────────────────
-// El director registra su centro y su cuenta a la vez
-router.post('/centro', (req, res) => {
-  const { centro_nombre, centro_codigo, centro_ciudad, centro_provincia,
-          nombre, apellidos, email, password } = req.body
+function verificarToken(req, res, next) {
+  const header = req.headers.authorization
+  if (!header || !header.startsWith('Bearer '))
+    return res.status(401).json({ error: 'Token requerido' })
 
-  if (!centro_nombre || !centro_codigo || !nombre || !apellidos || !email || !password) {
-    return res.status(400).json({ error: 'Todos los campos son obligatorios' })
+  const token = header.split(' ')[1]
+  try {
+    const payload  = jwt.verify(token, SECRET)
+    req.profesorId = payload.id
+    req.rol        = payload.rol
+    req.centroId   = payload.centro_id
+    next()
+  } catch (err) {
+    return res.status(401).json({ error: 'Token inválido o expirado' })
   }
+}
 
-  const db = getDB()
+function soloDirector(req, res, next) {
+  if (!['director', 'jefe_estudios', 'superadmin'].includes(req.rol))
+    return res.status(403).json({ error: 'Acceso restringido' })
+  next()
+}
 
-  // Verificar que el código del centro no existe
-  const existeCodigo = db.prepare('SELECT id FROM centros WHERE codigo = ?').get(centro_codigo.toUpperCase())
-  if (existeCodigo) return res.status(409).json({ error: 'Ya existe un centro con ese código' })
+function soloSuperadmin(req, res, next) {
+  if (req.rol !== 'superadmin')
+    return res.status(403).json({ error: 'Acceso restringido al superadmin' })
+  next()
+}
 
-  // Verificar que el email no existe
-  const existeEmail = db.prepare('SELECT id FROM profesores WHERE email = ?').get(email)
-  if (existeEmail) return res.status(409).json({ error: 'Este correo ya está registrado' })
-
-  // Crear centro — queda pendiente hasta aprobación del superadmin
-  const centroResult = db.prepare(
-    'INSERT INTO centros (nombre, codigo, ciudad, provincia, plan, aprobado) VALUES (?, ?, ?, ?, ?, ?)'
-  ).run(centro_nombre.trim(), centro_codigo.toUpperCase().trim(), centro_ciudad?.trim() || '', centro_provincia?.trim() || '', 'pendiente', 0)
-
-  const centroId = centroResult.lastInsertRowid
-
-  // Crear cuenta director — aprobada pero bloqueada hasta que el centro sea aprobado
-  const hash = bcrypt.hashSync(password, 10)
-  db.prepare(`
-    INSERT INTO profesores (centro_id, nombre, apellidos, email, password, asignatura, rol, aprobado)
-    VALUES (?, ?, ?, ?, ?, 'Dirección', 'director', 1)
-  `).run(centroId, nombre.trim(), apellidos.trim(), email, hash)
-
-  // No generamos token — el centro queda pendiente
-  res.status(201).json({ pendiente: true, mensaje: 'Solicitud enviada. El equipo de ExRooms revisará tu solicitud en breve.' })
-})
-
-// ── POST /api/auth/registro ───────────────────────────────
-router.post('/registro', (req, res) => {
-  const { nombre, apellidos, email, password, asignatura, centro_id } = req.body
-
-  if (!nombre || !apellidos || !email || !password || !asignatura || !centro_id) {
-    return res.status(400).json({ error: 'Todos los campos son obligatorios' })
-  }
-
-  const db = getDB()
-
-  const centro = db.prepare('SELECT id FROM centros WHERE id = ?').get(centro_id)
-  if (!centro) return res.status(404).json({ error: 'Centro no encontrado' })
-
-  const existe = db.prepare('SELECT id FROM profesores WHERE email = ?').get(email)
-  if (existe) return res.status(409).json({ error: 'Este correo ya está registrado' })
-
-  const hash = bcrypt.hashSync(password, 10)
-  db.prepare(`
-    INSERT INTO profesores (centro_id, nombre, apellidos, email, password, asignatura, rol, aprobado)
-    VALUES (?, ?, ?, ?, ?, ?, 'profesor', 0)
-  `).run(centro_id, nombre, apellidos, email, hash, asignatura)
-
-  res.status(201).json({ pendiente: true, mensaje: 'Cuenta creada. Espera a que el director apruebe tu acceso.' })
-})
-
-// ── POST /api/auth/login ──────────────────────────────────
-router.post('/login', (req, res) => {
-  const { email, password } = req.body
-  if (!email || !password)
-    return res.status(400).json({ error: 'Email y contraseña requeridos' })
-
-  const db      = getDB()
-  const profesor = db.prepare('SELECT * FROM profesores WHERE email = ?').get(email)
-  if (!profesor) return res.status(401).json({ error: 'Credenciales incorrectas' })
-
-  const ok = bcrypt.compareSync(password, profesor.password)
-  if (!ok) return res.status(401).json({ error: 'Credenciales incorrectas' })
-
-  if (profesor.aprobado === 0)
-    return res.status(403).json({ error: 'Tu cuenta está pendiente de aprobación por el director.' })
-  if (profesor.aprobado === 2)
-    return res.status(403).json({ error: 'Tu cuenta ha sido rechazada. Contacta con el director.' })
-
-  // Comprobar que el centro está aprobado (excepto superadmin)
-  if (profesor.rol !== 'superadmin' && profesor.centro_id) {
-    const centro = db.prepare('SELECT aprobado, plan FROM centros WHERE id = ?').get(profesor.centro_id)
-    if (!centro || centro.aprobado === 0)
-      return res.status(403).json({ error: 'Tu centro está pendiente de aprobación por el equipo de ExRooms.' })
-    if (centro.aprobado === 2)
-      return res.status(403).json({ error: 'Tu centro ha sido rechazado. Contacta con el equipo de ExRooms.' })
-    if (centro.plan === 'bloqueado')
-      return res.status(403).json({ error: 'La suscripción de tu centro ha expirado. Contacta con el equipo de ExRooms.' })
-  }
-
-  const token = generarToken(profesor)
-  const { password: _, ...safe } = profesor
-  res.json({ token, profesor: safe })
-})
-
-// ── GET /api/auth/me ──────────────────────────────────────
-router.get('/me', verificarToken, (req, res) => {
-  const db      = getDB()
-  const profesor = db.prepare(`
-    SELECT p.id, p.nombre, p.apellidos, p.email, p.asignatura, p.foto,
-           p.rol, p.aprobado, p.centro_id, p.created_at,
-           c.nombre as centro_nombre, c.codigo as centro_codigo, c.logo as centro_logo
-    FROM profesores p
-    LEFT JOIN centros c ON c.id = p.centro_id
-    WHERE p.id = ?
-  `).get(req.profesorId)
-  if (!profesor) return res.status(404).json({ error: 'No encontrado' })
-  res.json(profesor)
-})
-
-module.exports = router
+module.exports = { generarToken, verificarToken, soloDirector, soloSuperadmin }
