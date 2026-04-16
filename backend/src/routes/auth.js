@@ -1,9 +1,24 @@
 const express = require('express')
 const bcrypt  = require('bcryptjs')
+const crypto  = require('crypto')
 const { getDB } = require('../config/database')
 const { generarToken, verificarToken } = require('../middleware/auth')
+const { enviarEmailVerificacion } = require('../utils/email')
 
 const router = express.Router()
+
+// ── GET /api/auth/verificar-centro ───────────────────────
+router.get('/verificar-centro', async (req, res) => {
+  const { token } = req.query
+  if (!token) return res.status(400).json({ error: 'Token requerido' })
+
+  const db     = getDB()
+  const centro = db.prepare('SELECT * FROM centros WHERE token_verificacion = ?').get(token)
+  if (!centro) return res.status(404).json({ error: 'Token inválido o ya usado' })
+
+  db.prepare('UPDATE centros SET email_verificado = 1, token_verificacion = NULL WHERE id = ?').run(centro.id)
+  res.json({ ok: true, mensaje: 'Email verificado correctamente. El equipo de ExRooms revisará tu solicitud en breve.' })
+})
 
 // ── GET /api/auth/centros ─────────────────────────────────
 // Lista de centros disponibles para el registro de profesores
@@ -17,7 +32,7 @@ router.get('/centros', (req, res) => {
 
 // ── POST /api/auth/centro ─────────────────────────────────
 // El director registra su centro y su cuenta a la vez
-router.post('/centro', (req, res) => {
+router.post('/centro', async (req, res) => {
   const { centro_nombre, centro_codigo, centro_ciudad, centro_provincia,
           nombre, apellidos, email, password } = req.body
 
@@ -50,7 +65,18 @@ router.post('/centro', (req, res) => {
   `).run(centroId, nombre.trim(), apellidos.trim(), email, hash)
 
   // No generamos token — el centro queda pendiente
-  res.status(201).json({ pendiente: true, mensaje: 'Solicitud enviada. El equipo de ExRooms revisará tu solicitud en breve.' })
+  // Generar token de verificación
+  const tokenVerif = crypto.randomBytes(32).toString('hex')
+  db.prepare('UPDATE centros SET token_verificacion = ? WHERE id = ?').run(tokenVerif, centroId)
+
+  // Enviar email de verificación
+  try {
+    await enviarEmailVerificacion({ email, nombre: nombre.trim(), centro_nombre: centro_nombre.trim(), token: tokenVerif })
+  } catch (err) {
+    console.error('Error enviando email:', err.message)
+  }
+
+  res.status(201).json({ pendiente: true, mensaje: 'Solicitud enviada. Revisa tu email para verificar tu cuenta.' })
 })
 
 // ── POST /api/auth/registro ───────────────────────────────

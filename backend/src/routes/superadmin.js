@@ -1,6 +1,7 @@
 const express = require('express')
 const { getDB } = require('../config/database')
 const { verificarToken, soloSuperadmin } = require('../middleware/auth')
+const { enviarEmailAprobacion, enviarEmailRechazo } = require('../utils/email')
 
 const router = express.Router()
 router.use(verificarToken, soloSuperadmin)
@@ -38,7 +39,7 @@ router.get('/stats', (req, res) => {
 })
 
 // ── PUT /api/superadmin/centros/:id/aprobar ───────────────
-router.put('/centros/:id/aprobar', (req, res) => {
+router.put('/centros/:id/aprobar', async(req, res) => {
   const { plan } = req.body  // 'pruebas' o 'activo'
   if (!['pruebas','activo'].includes(plan))
     return res.status(400).json({ error: 'Plan debe ser "pruebas" o "activo"' })
@@ -48,16 +49,34 @@ router.put('/centros/:id/aprobar', (req, res) => {
   if (!centro) return res.status(404).json({ error: 'Centro no encontrado' })
 
   db.prepare('UPDATE centros SET aprobado = 1, plan = ? WHERE id = ?').run(plan, req.params.id)
+
+  // Enviar email al director
+  const director = db.prepare("SELECT nombre, apellidos, email FROM profesores WHERE centro_id = ? AND rol = 'director'").get(req.params.id)
+  if (director) {
+    try {
+      await enviarEmailAprobacion({ email: director.email, nombre: director.nombre, centro_nombre: centro.nombre, plan })
+    } catch (err) { console.error('Error email aprobación:', err.message) }
+  }
+
   res.json({ ok: true, mensaje: `Centro aprobado con plan ${plan}` })
 })
 
 // ── PUT /api/superadmin/centros/:id/rechazar ──────────────
-router.put('/centros/:id/rechazar', (req, res) => {
+router.put('/centros/:id/rechazar', async(req, res) => {
   const db = getDB()
   const centro = db.prepare('SELECT * FROM centros WHERE id = ?').get(req.params.id)
   if (!centro) return res.status(404).json({ error: 'Centro no encontrado' })
 
   db.prepare('UPDATE centros SET aprobado = 2, plan = ? WHERE id = ?').run('rechazado', req.params.id)
+
+  // Enviar email al director
+  const director = db.prepare("SELECT nombre, apellidos, email FROM profesores WHERE centro_id = ? AND rol = 'director'").get(req.params.id)
+  if (director) {
+    try {
+      await enviarEmailRechazo({ email: director.email, nombre: director.nombre, centro_nombre: centro.nombre })
+    } catch (err) { console.error('Error email rechazo:', err.message) }
+  }
+
   res.json({ ok: true })
 })
 

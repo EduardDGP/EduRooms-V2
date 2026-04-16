@@ -18,15 +18,17 @@ function initDB() {
   // ── Tabla: centros ────────────────────────────────────
   db.exec(`
     CREATE TABLE IF NOT EXISTS centros (
-      id          INTEGER PRIMARY KEY AUTOINCREMENT,
-      nombre      TEXT    NOT NULL,
-      codigo      TEXT    NOT NULL UNIQUE,
-      ciudad      TEXT    NOT NULL DEFAULT '',
-      provincia   TEXT    NOT NULL DEFAULT '',
-      logo        TEXT    DEFAULT NULL,
-      plan        TEXT    NOT NULL DEFAULT 'pendiente',
-      aprobado    INTEGER NOT NULL DEFAULT 0,
-      created_at  TEXT    DEFAULT (datetime('now','localtime'))
+      id                   INTEGER PRIMARY KEY AUTOINCREMENT,
+      nombre               TEXT    NOT NULL,
+      codigo               TEXT    NOT NULL UNIQUE,
+      ciudad               TEXT    NOT NULL DEFAULT '',
+      provincia            TEXT    NOT NULL DEFAULT '',
+      logo                 TEXT    DEFAULT NULL,
+      plan                 TEXT    NOT NULL DEFAULT 'pendiente',
+      aprobado             INTEGER NOT NULL DEFAULT 0,
+      email_verificado     INTEGER NOT NULL DEFAULT 0,
+      token_verificacion   TEXT    DEFAULT NULL,
+      created_at           TEXT    DEFAULT (datetime('now','localtime'))
     )
   `)
 

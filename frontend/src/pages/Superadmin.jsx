@@ -161,6 +161,7 @@ export default function Superadmin() {
                         {c.director_nombre && <span>👤 {c.director_nombre} {c.director_apellidos} — {c.director_email}</span>}
                         <span>👥 {c.total_profesores} profesores</span>
                         <span>📅 {fecha}</span>
+                        <span>{c.email_verificado ? '✅ Email verificado' : '⏳ Email sin verificar'}</span>
                       </div>
                     </div>
 

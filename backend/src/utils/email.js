@@ -1,0 +1,75 @@
+const { Resend } = require('resend')
+
+const resend  = new Resend(process.env.RESEND_API_KEY)
+const FROM    = 'ExRooms <noreply@exrooms.app>'
+const BASE_URL = process.env.BASE_URL || 'https://exrooms.app'
+
+async function enviarEmailVerificacion({ email, nombre, centro_nombre, token }) {
+  const url = `${BASE_URL}/verificar-centro?token=${token}`
+  await resend.emails.send({
+    from: FROM, to: email,
+    subject: 'Verifica tu centro en ExRooms',
+    html: `
+      <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:32px">
+        <div style="margin-bottom:24px">
+          <span style="background:#0a0a0a;color:#fff;padding:8px 16px;border-radius:8px;font-weight:900;font-size:18px;font-family:Georgia,serif">Ex<span style="color:#34d399">Rooms</span></span>
+        </div>
+        <h1 style="font-size:22px;color:#0a0a0a">Hola ${nombre},</h1>
+        <p style="color:#555;font-size:15px;line-height:1.6">
+          Gracias por registrar <strong>${centro_nombre}</strong> en ExRooms. Verifica tu email haciendo click en el botón:
+        </p>
+        <div style="margin:32px 0;text-align:center">
+          <a href="${url}" style="background:#0a0a0a;color:#fff;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px">Verificar mi centro →</a>
+        </div>
+        <p style="color:#999;font-size:13px">Este enlace expirará en 24 horas.</p>
+        <hr style="border:none;border-top:1px solid #eee;margin:24px 0">
+        <p style="color:#bbb;font-size:12px;text-align:center">ExRooms · Gestión interna para centros educativos</p>
+      </div>`
+  })
+}
+
+async function enviarEmailAprobacion({ email, nombre, centro_nombre, plan }) {
+  const esPruebas = plan === 'pruebas'
+  await resend.emails.send({
+    from: FROM, to: email,
+    subject: '¡Tu centro ha sido aprobado en ExRooms!',
+    html: `
+      <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:32px">
+        <div style="margin-bottom:24px">
+          <span style="background:#0a0a0a;color:#fff;padding:8px 16px;border-radius:8px;font-weight:900;font-size:18px;font-family:Georgia,serif">Ex<span style="color:#34d399">Rooms</span></span>
+        </div>
+        <h1 style="font-size:22px;color:#0a0a0a">¡Bienvenido a ExRooms, ${nombre}!</h1>
+        <p style="color:#555;font-size:15px;line-height:1.6">
+          Tu centro <strong>${centro_nombre}</strong> ha sido aprobado${esPruebas ? ' como <strong>centro de pruebas (acceso gratuito)</strong>' : ''}.
+          Ya puedes acceder con tu email y contraseña.
+        </p>
+        <div style="margin:32px 0;text-align:center">
+          <a href="${BASE_URL}/login" style="background:#0a0a0a;color:#fff;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px">Acceder a ExRooms →</a>
+        </div>
+        ${esPruebas ? `<div style="background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:16px;margin-bottom:16px"><p style="color:#166534;font-size:13px;margin:0">🧪 Tienes acceso gratuito como centro de pruebas. Nos ayudarás con feedback para mejorar la plataforma.</p></div>` : ''}
+        <hr style="border:none;border-top:1px solid #eee;margin:24px 0">
+        <p style="color:#bbb;font-size:12px;text-align:center">ExRooms · Gestión interna para centros educativos</p>
+      </div>`
+  })
+}
+
+async function enviarEmailRechazo({ email, nombre, centro_nombre }) {
+  await resend.emails.send({
+    from: FROM, to: email,
+    subject: 'Actualización sobre tu solicitud en ExRooms',
+    html: `
+      <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:32px">
+        <div style="margin-bottom:24px">
+          <span style="background:#0a0a0a;color:#fff;padding:8px 16px;border-radius:8px;font-weight:900;font-size:18px;font-family:Georgia,serif">Ex<span style="color:#34d399">Rooms</span></span>
+        </div>
+        <h1 style="font-size:22px;color:#0a0a0a">Hola ${nombre},</h1>
+        <p style="color:#555;font-size:15px;line-height:1.6">
+          Lamentamos informarte que la solicitud de <strong>${centro_nombre}</strong> no ha podido ser aprobada. Si crees que es un error, responde a este email.
+        </p>
+        <hr style="border:none;border-top:1px solid #eee;margin:24px 0">
+        <p style="color:#bbb;font-size:12px;text-align:center">ExRooms · Gestión interna para centros educativos</p>
+      </div>`
+  })
+}
+
+module.exports = { enviarEmailVerificacion, enviarEmailAprobacion, enviarEmailRechazo }
