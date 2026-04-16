@@ -1,12 +1,15 @@
 const { Resend } = require('resend')
 
-const resend  = new Resend(process.env.RESEND_API_KEY)
-const FROM    = 'ExRooms <noreply@exrooms.app>'
+const FROM     = 'ExRooms <noreply@exrooms.app>'
 const BASE_URL = process.env.BASE_URL || 'https://exrooms.app'
+
+function getResend() {
+  return new Resend(process.env.RESEND_API_KEY)
+}
 
 async function enviarEmailVerificacion({ email, nombre, centro_nombre, token }) {
   const url = `${BASE_URL}/verificar-centro?token=${token}`
-  await resend.emails.send({
+  await getResend().emails.send({
     from: FROM, to: email,
     subject: 'Verifica tu centro en ExRooms',
     html: `
@@ -30,7 +33,7 @@ async function enviarEmailVerificacion({ email, nombre, centro_nombre, token }) 
 
 async function enviarEmailAprobacion({ email, nombre, centro_nombre, plan }) {
   const esPruebas = plan === 'pruebas'
-  await resend.emails.send({
+  await getResend().emails.send({
     from: FROM, to: email,
     subject: '¡Tu centro ha sido aprobado en ExRooms!',
     html: `
@@ -54,7 +57,7 @@ async function enviarEmailAprobacion({ email, nombre, centro_nombre, plan }) {
 }
 
 async function enviarEmailRechazo({ email, nombre, centro_nombre }) {
-  await resend.emails.send({
+  await getResend().emails.send({
     from: FROM, to: email,
     subject: 'Actualización sobre tu solicitud en ExRooms',
     html: `
