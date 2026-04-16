@@ -3,12 +3,22 @@ import { useAuth } from '../../hooks/useAuth'
 import { getSalidasBano, getHistorialBano, registrarSalida, editarSalida, borrarSalida, getCursos, getAlumnos } from '../../api/client'
 import Modal from '../shared/Modal'
 
-// Color por veces al baño hoy
 function getBadge(veces) {
   if (!veces || veces === 0) return null
   if (veces <= 2) return { bg:'#d1fae5', color:'#065f46', border:'#6ee7b7' }
   if (veces <= 4) return { bg:'#ffedd5', color:'#9a3412', border:'#fed7aa' }
   return { bg:'#fee2e2', color:'#991b1b', border:'#fca5a5' }
+}
+
+// Formatea hora UTC a hora local del dispositivo
+function formatHora(horaStr) {
+  if (!horaStr) return ''
+  // Si es solo HH:MM (sin fecha), construir fecha UTC de hoy
+  if (horaStr.length === 5) {
+    const hoy = new Date().toISOString().split('T')[0]
+    return new Date(`${hoy}T${horaStr}:00Z`).toLocaleTimeString('es-ES', { hour:'2-digit', minute:'2-digit' })
+  }
+  return new Date(horaStr + 'Z').toLocaleTimeString('es-ES', { hour:'2-digit', minute:'2-digit' })
 }
 
 export default function BanoPanel({ toast }) {
@@ -19,12 +29,10 @@ export default function BanoPanel({ toast }) {
   const [histOpen,  setHistOpen]  = useState(false)
   const [histLoad,  setHistLoad]  = useState(false)
 
-  // Cursos y alumnos
   const [cursos,     setCursos]     = useState([])
   const [alumnos,    setAlumnos]    = useState([])
   const [loadAlum,   setLoadAlum]   = useState(false)
 
-  // Modal registrar
   const [modal,     setModal]     = useState(false)
   const [selCurso,  setSelCurso]  = useState('')
   const [selGrupo,  setSelGrupo]  = useState('')
@@ -33,17 +41,23 @@ export default function BanoPanel({ toast }) {
   const [modoManual,   setModoManual]   = useState(false)
   const [guardando, setGuardando] = useState(false)
 
-  // Modal editar
   const [editModal, setEditModal] = useState(null)
   const [editForm,  setEditForm]  = useState({ alumno_nombre:'', alumno_curso:'' })
   const [editando,  setEditando]  = useState(false)
 
-  useEffect(() => { cargar(); cargarCursos() }, [])
+  useEffect(() => {
+    cargar()
+    cargarCursos()
+    const interval = setInterval(cargar, 30000)
+    return () => clearInterval(interval)
+  }, [])
+
   useEffect(() => {
     if (selCurso && selGrupo) cargarAlumnos()
     else setAlumnos([])
     setSelAlumno(null)
   }, [selCurso, selGrupo])
+
   useEffect(() => { if (histOpen && historial.length === 0) cargarHistorial() }, [histOpen])
 
   async function cargar() {
@@ -72,11 +86,9 @@ export default function BanoPanel({ toast }) {
     finally { setHistLoad(false) }
   }
 
-  // Agrupar cursos por nombre
-  const cursosUnicos = [...new Set(cursos.map(c => c.curso))]
-  const gruposDelCurso = cursos.filter(c => c.curso === selCurso).map(c => c.grupo)
+  const cursosUnicos    = [...new Set(cursos.map(c => c.curso))]
+  const gruposDelCurso  = cursos.filter(c => c.curso === selCurso).map(c => c.grupo)
 
-  // Contar veces de cada alumno hoy
   const vecesHoy = salidas.reduce((acc, s) => {
     const key = s.alumno_nombre
     acc[key] = (acc[key] || 0) + 1
@@ -88,13 +100,10 @@ export default function BanoPanel({ toast }) {
     const nombreFinal = modoManual
       ? manualNombre.trim()
       : selAlumno ? `${selAlumno.apellidos}, ${selAlumno.nombre}` : ''
-
     const cursoFinal = modoManual
       ? (selCurso && selGrupo ? `${selCurso} ${selGrupo}` : manualNombre)
       : `${selCurso} ${selGrupo}`
-
     if (!nombreFinal) { toast('Selecciona o escribe un alumno', 'error'); return }
-
     setGuardando(true)
     try {
       const nueva = await registrarSalida({ alumno_nombre: nombreFinal, alumno_curso: cursoFinal })
@@ -128,7 +137,6 @@ export default function BanoPanel({ toast }) {
     } catch (err) { toast(err.message, 'error') }
   }
 
-  // Agrupar historial por fecha
   const histPorFecha = historial.reduce((acc, s) => {
     if (!acc[s.fecha]) acc[s.fecha] = []
     acc[s.fecha].push(s)
@@ -140,6 +148,8 @@ export default function BanoPanel({ toast }) {
     acc[s.alumno_curso] = (acc[s.alumno_curso] || 0) + 1
     return acc
   }, {})
+
+  const horaActual = new Date().toLocaleTimeString('es-ES', { hour:'2-digit', minute:'2-digit' })
 
   return (
     <div>
@@ -171,7 +181,7 @@ export default function BanoPanel({ toast }) {
         </div>
       )}
 
-      {/* Leyenda colores */}
+      {/* Leyenda */}
       <div style={{ display:'flex', gap:8, marginBottom:14, flexWrap:'wrap' }}>
         <div style={{ fontSize:11, color:'var(--text3)', alignSelf:'center', fontWeight:600 }}>Veces hoy:</div>
         {[
@@ -216,19 +226,15 @@ export default function BanoPanel({ toast }) {
                   )}
                 </div>
                 <span style={{ display:'inline-flex', padding:'3px 9px', borderRadius:20, background:'var(--primary-pale)', color:'var(--primary)', fontSize:12, fontWeight:700 }}>{s.alumno_curso}</span>
-                <span style={{ fontFamily:'Fira Code, monospace', fontSize:13, fontWeight:600 }}>{s.hora}</span>
+                <span style={{ fontFamily:'Fira Code, monospace', fontSize:13, fontWeight:600 }}>{formatHora(s.hora)}</span>
                 <span style={{ fontSize:12, color:'var(--text2)' }}>👤 {s.prof_nombre} {s.prof_apellidos}</span>
                 <div style={{ display:'flex', gap:4 }}>
                   {esMio && (<>
                     <button onClick={() => { setEditModal(s); setEditForm({ alumno_nombre:s.alumno_nombre, alumno_curso:s.alumno_curso }) }}
                       style={{ background:'none', border:'none', cursor:'pointer', padding:5, borderRadius:6, fontSize:15, color:'var(--text3)' }}
-                      onMouseEnter={e=>{e.currentTarget.style.color='var(--primary)';e.currentTarget.style.background='var(--primary-pale)'}}
-                      onMouseLeave={e=>{e.currentTarget.style.color='var(--text3)';e.currentTarget.style.background='none'}}
                       title="Editar">✏️</button>
                     <button onClick={() => handleBorrar(s.id)}
                       style={{ background:'none', border:'none', cursor:'pointer', padding:5, borderRadius:6, fontSize:15, color:'var(--text3)' }}
-                      onMouseEnter={e=>{e.currentTarget.style.color='var(--red)';e.currentTarget.style.background='var(--red-pale)'}}
-                      onMouseLeave={e=>{e.currentTarget.style.color='var(--text3)';e.currentTarget.style.background='none'}}
                       title="Eliminar">🗑️</button>
                   </>)}
                 </div>
@@ -266,7 +272,7 @@ export default function BanoPanel({ toast }) {
                         <div style={{ width:26, height:26, borderRadius:'50%', background:'#f1f5f9', color:'var(--text2)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700, flexShrink:0 }}>{s.alumno_nombre[0]}</div>
                         <span style={{ fontWeight:600, flex:1 }}>{s.alumno_nombre}</span>
                         <span style={{ background:'var(--bg)', padding:'2px 9px', borderRadius:20, fontSize:11, fontWeight:600, color:'var(--text2)' }}>{s.alumno_curso}</span>
-                        <span style={{ fontFamily:'Fira Code,monospace', color:'var(--text3)', fontSize:11 }}>{s.hora}</span>
+                        <span style={{ fontFamily:'Fira Code,monospace', color:'var(--text3)', fontSize:11 }}>{formatHora(s.hora)}</span>
                         <span style={{ fontSize:12, color:'var(--text3)' }}>👤 {s.prof_nombre} {s.prof_apellidos}</span>
                       </div>
                     ))}
@@ -281,7 +287,6 @@ export default function BanoPanel({ toast }) {
       {/* Modal registrar */}
       <Modal open={modal} onClose={() => { setModal(false); setSelAlumno(null); setModoManual(false) }} title="🚻 Autorizar salida al baño">
         <form onSubmit={handleRegistrar}>
-          {/* Modo: lista o manual */}
           <div style={{ display:'flex', gap:8, marginBottom:16 }}>
             <button type="button" onClick={() => setModoManual(false)} style={{ flex:1, padding:'8px', borderRadius:8, border:'1.5px solid', borderColor: !modoManual ? 'var(--primary)' : 'var(--border)', background: !modoManual ? 'var(--primary-pale)' : '#fff', color: !modoManual ? 'var(--primary)' : 'var(--text2)', fontFamily:'Outfit,sans-serif', fontWeight:700, fontSize:13, cursor:'pointer' }}>
               📋 Elegir de lista
@@ -332,7 +337,6 @@ export default function BanoPanel({ toast }) {
                       </select>
                     </div>
                   </div>
-
                   {selCurso && selGrupo && (
                     <div className="form-group">
                       <label>Alumno</label>
@@ -350,12 +354,9 @@ export default function BanoPanel({ toast }) {
                                 padding:'10px 14px', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'space-between',
                                 borderBottom:'1px solid var(--border)',
                                 background: isSelected ? 'var(--primary-pale)' : badge ? badge.bg + '55' : 'transparent',
-                                transition:'all .1s',
                               }}>
-                                <div>
-                                  <div style={{ fontWeight: isSelected ? 700 : 600, fontSize:13, color: isSelected ? 'var(--primary)' : 'var(--text)' }}>
-                                    {a.apellidos}, {a.nombre}
-                                  </div>
+                                <div style={{ fontWeight: isSelected ? 700 : 600, fontSize:13, color: isSelected ? 'var(--primary)' : 'var(--text)' }}>
+                                  {a.apellidos}, {a.nombre}
                                 </div>
                                 {veces > 0 && badge && (
                                   <span style={{ padding:'2px 8px', borderRadius:20, fontSize:11, fontWeight:800, background:badge.bg, color:badge.color, border:`1px solid ${badge.border}`, flexShrink:0 }}>
@@ -375,7 +376,7 @@ export default function BanoPanel({ toast }) {
           )}
 
           <div style={{ background:'var(--primary-pale)', border:'1px solid #bfdbfe', borderRadius:8, padding:'10px 14px', marginBottom:20, marginTop:8, fontSize:13, color:'var(--primary)', display:'flex', gap:8 }}>
-            🕐 Hora actual: <strong>{new Date().toLocaleTimeString('es-ES', { hour:'2-digit', minute:'2-digit' })}</strong>
+            🕐 Hora actual: <strong>{horaActual}</strong>
           </div>
           <div style={{ display:'flex', gap:10, justifyContent:'flex-end' }}>
             <button type="button" className="btn btn-outline btn-sm" onClick={() => { setModal(false); setSelAlumno(null); setModoManual(false) }}>Cancelar</button>
