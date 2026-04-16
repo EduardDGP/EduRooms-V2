@@ -38,7 +38,7 @@ router.post('/', (req, res) => {
   const db    = getDB()
   const now   = new Date()
   const fecha = now.toISOString().split('T')[0]
-  const hora  = now.toTimeString().slice(0, 5)
+  const hora  = now.toISOString().split('T')[1].slice(0, 5)
 
   const result = db.prepare(
     'INSERT INTO salidas_bano (centro_id, profesor_id, alumno_nombre, alumno_curso, fecha, hora) VALUES (?, ?, ?, ?, ?, ?)'

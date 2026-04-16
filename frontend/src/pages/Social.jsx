@@ -192,7 +192,7 @@ export default function Social({ toast }) {
                 )}
                 {mensajes.map(m => {
                   const isOwn = m.de_id === user.id
-                  const hora  = new Date(m.created_at).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'})
+                  const hora  = new Date(m.created_at + 'Z').toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'})
                   return (
                     <div key={m.id} style={{ display:'flex',gap:10,alignItems:'flex-end',flexDirection:isOwn?'row-reverse':'row' }}>
                       {!isOwn && (

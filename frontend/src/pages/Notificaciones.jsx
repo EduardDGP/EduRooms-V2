@@ -71,7 +71,7 @@ export default function Notificaciones({ toast }) {
               <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
                 {lista.map(n => {
                   const cfg = TIPO_CONFIG[n.tipo] || TIPO_CONFIG.reserva
-                  const hora = n.created_at.split(' ')[1]?.slice(0,5) || ''
+                  const hora = new Date(n.created_at + 'Z').toLocaleTimeString('es-ES', { hour:'2-digit', minute:'2-digit' })
                   return (
                     <div key={n.id} style={{
                       display:'flex', alignItems:'flex-start', gap:14,

@@ -28,7 +28,7 @@ function initDB() {
       aprobado             INTEGER NOT NULL DEFAULT 0,
       email_verificado     INTEGER NOT NULL DEFAULT 0,
       token_verificacion   TEXT    DEFAULT NULL,
-      created_at           TEXT    DEFAULT (datetime('now','localtime'))
+      created_at           TEXT    DEFAULT (datetime('now'))
     )
   `)
 
@@ -47,7 +47,7 @@ function initDB() {
       foto        TEXT    DEFAULT NULL,
       rol         TEXT    NOT NULL DEFAULT 'profesor',
       aprobado    INTEGER NOT NULL DEFAULT 0,
-      created_at  TEXT    DEFAULT (datetime('now','localtime'))
+      created_at  TEXT    DEFAULT (datetime('now'))
     )
   `)
 
@@ -59,7 +59,7 @@ function initDB() {
       nombre      TEXT    NOT NULL,
       tipo        TEXT    NOT NULL,
       capacidad   INTEGER NOT NULL DEFAULT 30,
-      created_at  TEXT    DEFAULT (datetime('now','localtime'))
+      created_at  TEXT    DEFAULT (datetime('now'))
     )
   `)
 
@@ -77,7 +77,7 @@ function initDB() {
       franja_orden INTEGER NOT NULL DEFAULT 0,
       hora_inicio  TEXT    NOT NULL DEFAULT '',
       hora_fin     TEXT    NOT NULL DEFAULT '',
-      created_at   TEXT    DEFAULT (datetime('now','localtime'))
+      created_at   TEXT    DEFAULT (datetime('now'))
     )
   `)
 
@@ -98,7 +98,7 @@ function initDB() {
       de_id       INTEGER NOT NULL REFERENCES profesores(id) ON DELETE CASCADE,
       para_id     INTEGER NOT NULL REFERENCES profesores(id) ON DELETE CASCADE,
       texto       TEXT    NOT NULL,
-      created_at  TEXT    DEFAULT (datetime('now','localtime'))
+      created_at  TEXT    DEFAULT (datetime('now'))
     )
   `)
 
@@ -112,7 +112,7 @@ function initDB() {
       alumno_curso   TEXT    NOT NULL,
       fecha          TEXT    NOT NULL,
       hora           TEXT    NOT NULL,
-      created_at     TEXT    DEFAULT (datetime('now','localtime'))
+      created_at     TEXT    DEFAULT (datetime('now'))
     )
   `)
 
@@ -125,7 +125,7 @@ function initDB() {
       nombre      TEXT    NOT NULL,
       curso       TEXT    NOT NULL,
       grupo       TEXT    NOT NULL,
-      created_at  TEXT    DEFAULT (datetime('now','localtime'))
+      created_at  TEXT    DEFAULT (datetime('now'))
     )
   `)
 
@@ -146,7 +146,7 @@ function initDB() {
       aula          TEXT    NOT NULL,
       instrucciones TEXT    NOT NULL DEFAULT '',
       cubierta_por  INTEGER REFERENCES profesores(id) ON DELETE SET NULL,
-      created_at    TEXT    DEFAULT (datetime('now','localtime'))
+      created_at    TEXT    DEFAULT (datetime('now'))
     )
   `)
 
@@ -160,7 +160,7 @@ function initDB() {
       titulo      TEXT    NOT NULL,
       mensaje     TEXT    NOT NULL,
       leida       INTEGER NOT NULL DEFAULT 0,
-      created_at  TEXT    DEFAULT (datetime('now','localtime'))
+      created_at  TEXT    DEFAULT (datetime('now'))
     )
   `)
 
