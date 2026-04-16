@@ -35,7 +35,11 @@ export default function Guardias({ toast }) {
     fecha: TODAY, franja_id:'', curso:'', grupo:'A', aula:'', instrucciones:''
   })
 
-  useEffect(() => { cargar() }, [])
+  useEffect(() => {
+    cargar()
+    const interval = setInterval(cargar, 60000)
+    return () => clearInterval(interval)
+  }, [])
 
   async function cargar() {
     setLoading(true)

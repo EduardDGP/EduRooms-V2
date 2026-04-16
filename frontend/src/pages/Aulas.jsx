@@ -28,7 +28,11 @@ export default function Aulas({ toast }) {
   const [aulaDetalle,  setAulaDetalle]  = useState(null)
   const [formAula,     setFormAula]     = useState({ nombre:'', tipo:'Informática', capacidad:'30' })
 
-  useEffect(() => { cargar() }, [])
+  useEffect(() => {
+    cargar()
+    const interval = setInterval(cargar, 60000)
+    return () => clearInterval(interval)
+  }, [])
 
   async function cargar() {
     setLoading(true)

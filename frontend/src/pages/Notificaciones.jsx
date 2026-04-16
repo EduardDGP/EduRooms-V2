@@ -25,7 +25,11 @@ export default function Notificaciones({ toast }) {
   const [loading, setLoading] = useState(true)
   const navigate = useNavigate()
 
-  useEffect(() => { cargar() }, [])
+  useEffect(() => {
+    cargar()
+    const interval = setInterval(cargar, 30000)
+    return () => clearInterval(interval)
+  }, [])
 
   async function cargar() {
     setLoading(true)

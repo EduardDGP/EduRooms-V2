@@ -12,11 +12,29 @@ export default function Social({ toast }) {
   const [addId,       setAddId]       = useState('')
   const [buscar,      setBuscar]      = useState('')
   const [loading,     setLoading]     = useState(true)
-  const bottomRef = useRef(null)
+  const bottomRef    = useRef(null)
+  const activeChatRef = useRef(null)
+
+  // Mantener referencia actualizada del chat activo
+  useEffect(() => { activeChatRef.current = activeChat }, [activeChat])
 
   useEffect(() => { cargar() }, [])
   useEffect(() => { if (activeChat) cargarMensajes(activeChat.id) }, [activeChat])
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior:'smooth' }) }, [mensajes])
+
+  // Polling: mensajes cada 3s, contactos cada 15s
+  useEffect(() => {
+    const intervalMensajes = setInterval(() => {
+      if (activeChatRef.current) cargarMensajesSilencioso(activeChatRef.current.id)
+    }, 3000)
+    const intervalContactos = setInterval(() => {
+      cargarContactosSilencioso()
+    }, 15000)
+    return () => {
+      clearInterval(intervalMensajes)
+      clearInterval(intervalContactos)
+    }
+  }, [])
 
   async function cargar() {
     setLoading(true)
@@ -28,11 +46,28 @@ export default function Social({ toast }) {
     finally { setLoading(false) }
   }
 
+  async function cargarContactosSilencioso() {
+    try {
+      const c = await getContactos()
+      setContactos(c)
+    } catch (_) {}
+  }
+
   async function cargarMensajes(id) {
     try {
       const msgs = await getMensajes(id)
       setMensajes(msgs)
     } catch (err) { toast(err.message, 'error') }
+  }
+
+  async function cargarMensajesSilencioso(id) {
+    try {
+      const msgs = await getMensajes(id)
+      setMensajes(prev => {
+        if (prev.length === msgs.length) return prev
+        return msgs
+      })
+    } catch (_) {}
   }
 
   async function handleAddContacto() {
