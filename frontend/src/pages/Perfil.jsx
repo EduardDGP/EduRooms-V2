@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../hooks/useAuth'
-import { getPerfil, editarPerfil, subirFoto } from '../api/client'
+import { getPerfil, editarPerfil, subirFoto, cambiarPassword } from '../api/client'
 
 export default function Perfil({ toast }) {
   const { user, refreshUser } = useAuth()
@@ -10,6 +10,10 @@ export default function Perfil({ toast }) {
   const [editando,  setEditando]  = useState(false)
   const [guardando, setGuardando] = useState(false)
   const [form,      setForm]      = useState({ nombre:'', apellidos:'', asignatura:'' })
+  const [passForm,  setPassForm]  = useState({ password_actual:'', password_nuevo:'', password_confirmar:'' })
+  const [passError, setPassError] = useState('')
+  const [passSaving,setPassSaving]= useState(false)
+  const [passOk,    setPassOk]    = useState(false)
   const fileRef = useRef(null)
 
   useEffect(() => { cargar() }, [])
@@ -49,6 +53,24 @@ export default function Perfil({ toast }) {
       toast('Perfil actualizado ✅', 'success')
     } catch (err) { toast(err.message, 'error') }
     finally { setGuardando(false) }
+  }
+
+  async function handleCambiarPassword(e) {
+    e.preventDefault()
+    setPassError('')
+    setPassOk(false)
+    if (passForm.password_nuevo !== passForm.password_confirmar) {
+      setPassError('Las contraseñas no coinciden')
+      return
+    }
+    setPassSaving(true)
+    try {
+      await cambiarPassword({ password_actual: passForm.password_actual, password_nuevo: passForm.password_nuevo })
+      setPassOk(true)
+      setPassForm({ password_actual:'', password_nuevo:'', password_confirmar:'' })
+      toast('Contraseña actualizada ✅', 'success')
+    } catch (err) { setPassError(err.message) }
+    finally { setPassSaving(false) }
   }
 
   if (loading || !perfil) return <p style={{ color:'var(--text3)' }}>Cargando perfil...</p>
@@ -111,22 +133,40 @@ export default function Perfil({ toast }) {
               <input type="text" value={form.asignatura} onChange={e => setForm(f => ({...f, asignatura:e.target.value}))} required />
             </div>
 
-            {/* Email y contraseña — deshabilitados por ahora */}
-            <div style={{ background:'var(--bg)', border:'1.5px solid var(--border)', borderRadius:10, padding:'14px 16px', marginBottom:20 }}>
-              <div style={{ fontSize:12, fontWeight:700, color:'var(--text3)', textTransform:'uppercase', letterSpacing:'.5px', marginBottom:10 }}>No disponible aún</div>
-              <div className="form-row" style={{ marginBottom:0 }}>
-                <div className="form-group" style={{ marginBottom:0 }}>
-                  <label>Correo electrónico</label>
-                  <input type="email" value={perfil.email} disabled style={{ opacity:.5, cursor:'not-allowed' }} />
+            {/* Cambio de contraseña */}
+            <div style={{ background:'var(--bg)', border:'1.5px solid var(--border)', borderRadius:10, padding:'16px', marginBottom:20 }}>
+              <div style={{ fontSize:12, fontWeight:700, color:'var(--text3)', textTransform:'uppercase', letterSpacing:'.5px', marginBottom:14 }}>🔒 Cambiar contraseña</div>
+              {passOk && (
+                <div style={{ background:'#d1fae5', border:'1px solid #6ee7b7', borderRadius:8, padding:'10px 14px', marginBottom:14, fontSize:13, color:'#065f46', fontWeight:600 }}>
+                  ✅ Contraseña actualizada correctamente
                 </div>
-                <div className="form-group" style={{ marginBottom:0 }}>
-                  <label>Contraseña</label>
-                  <input type="password" value="••••••••" disabled style={{ opacity:.5, cursor:'not-allowed' }} />
+              )}
+              {passError && (
+                <div style={{ background:'#fee2e2', border:'1px solid #fca5a5', borderRadius:8, padding:'10px 14px', marginBottom:14, fontSize:13, color:'#991b1b' }}>
+                  ⚠️ {passError}
                 </div>
-              </div>
-              <p style={{ fontSize:12, color:'var(--text3)', marginTop:10 }}>
-                El cambio de email y contraseña estará disponible cuando el proyecto tenga servidor en producción.
-              </p>
+              )}
+              <form onSubmit={handleCambiarPassword}>
+                <div className="form-group">
+                  <label>Contraseña actual</label>
+                  <input type="password" value={passForm.password_actual} onChange={e => setPassForm(f => ({...f, password_actual:e.target.value}))} required />
+                </div>
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>Nueva contraseña</label>
+                    <input type="password" value={passForm.password_nuevo} onChange={e => setPassForm(f => ({...f, password_nuevo:e.target.value}))} required minLength={6} />
+                  </div>
+                  <div className="form-group">
+                    <label>Confirmar nueva contraseña</label>
+                    <input type="password" value={passForm.password_confirmar} onChange={e => setPassForm(f => ({...f, password_confirmar:e.target.value}))} required minLength={6} />
+                  </div>
+                </div>
+                <div style={{ display:'flex', justifyContent:'flex-end' }}>
+                  <button type="submit" className="btn btn-outline btn-sm" disabled={passSaving}>
+                    {passSaving ? 'Guardando...' : 'Cambiar contraseña'}
+                  </button>
+                </div>
+              </form>
             </div>
 
             <div style={{ display:'flex', justifyContent:'flex-end' }}>

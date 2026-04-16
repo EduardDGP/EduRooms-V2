@@ -1,4 +1,4 @@
-const BASE = '/api'
+const BASE = (import.meta.env.VITE_API_URL || '') + '/api'
 
 export const getToken    = () => localStorage.getItem('edu_token')
 export const setToken    = (t) => localStorage.setItem('edu_token', t)
@@ -45,8 +45,9 @@ export const getMensajes      = (contactoId) => req('GET',    `/social/mensajes/
 export const enviarMensaje    = (body)       => req('POST',   '/social/mensajes', body)
 
 // ── Perfil ────────────────────────────────────────────────
-export const getPerfil    = ()     => req('GET', '/perfil')
-export const editarPerfil = (body) => req('PUT', '/perfil', body)
+export const getPerfil        = ()     => req('GET', '/perfil')
+export const editarPerfil     = (body) => req('PUT', '/perfil', body)
+export const cambiarPassword  = (body) => req('PUT', '/perfil/password', body)
 
 // ── Notificaciones ────────────────────────────────────────
 export const getNotificaciones = ()  => req('GET', '/notificaciones')
@@ -82,3 +83,4 @@ export async function subirFoto(file) {
   if (!res.ok) throw new Error(data.error || 'Error subiendo foto')
   return data
 }
+// build Tue Apr  7 16:17:45 UTC 2026
