@@ -28,6 +28,7 @@ function initDB() {
       aprobado             INTEGER NOT NULL DEFAULT 0,
       email_verificado     INTEGER NOT NULL DEFAULT 0,
       token_verificacion   TEXT    DEFAULT NULL,
+      stripe_customer_id   TEXT    DEFAULT NULL,
       created_at           TEXT    DEFAULT (datetime('now'))
     )
   `)
