@@ -23,7 +23,10 @@ app.use(cors({ origin: 'http://localhost:5173', credentials: true }))
 // Webhook de Stripe ANTES del middleware JSON
 app.use('/api/stripe/webhook', stripeRoutes)
 
-app.use(express.json())
+app.use((req, res, next) => {
+  if (req.path === '/api/stripe/webhook') return next()
+  express.json()(req, res, next)
+})
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')))
 
 app.use('/api/auth',    authRoutes)
