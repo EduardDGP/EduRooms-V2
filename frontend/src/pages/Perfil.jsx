@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../hooks/useAuth'
-import { getPerfil, editarPerfil, subirFoto, cambiarPassword } from '../api/client'
+import { getPerfil, editarPerfil, subirFoto } from '../api/client'
 
 export default function Perfil({ toast }) {
   const { user, refreshUser } = useAuth()
@@ -10,10 +10,8 @@ export default function Perfil({ toast }) {
   const [editando,  setEditando]  = useState(false)
   const [guardando, setGuardando] = useState(false)
   const [form,      setForm]      = useState({ nombre:'', apellidos:'', asignatura:'' })
-  const [passForm,  setPassForm]  = useState({ password_actual:'', password_nuevo:'', password_confirmar:'' })
-  const [passError, setPassError] = useState('')
-  const [passSaving,setPassSaving]= useState(false)
-  const [passOk,    setPassOk]    = useState(false)
+  const [enviando,  setEnviando]  = useState(false)
+  const [resetOk,   setResetOk]   = useState(false)
   const fileRef = useRef(null)
 
   useEffect(() => { cargar() }, [])
@@ -55,22 +53,20 @@ export default function Perfil({ toast }) {
     finally { setGuardando(false) }
   }
 
-  async function handleCambiarPassword(e) {
-    e.preventDefault()
-    setPassError('')
-    setPassOk(false)
-    if (passForm.password_nuevo !== passForm.password_confirmar) {
-      setPassError('Las contraseñas no coinciden')
-      return
-    }
-    setPassSaving(true)
+  async function handleSolicitarReset() {
+    if (!perfil?.email) return
+    setEnviando(true)
     try {
-      await cambiarPassword({ password_actual: passForm.password_actual, password_nuevo: passForm.password_nuevo })
-      setPassOk(true)
-      setPassForm({ password_actual:'', password_nuevo:'', password_confirmar:'' })
-      toast('Contraseña actualizada ✅', 'success')
-    } catch (err) { setPassError(err.message) }
-    finally { setPassSaving(false) }
+      const res  = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type':'application/json' },
+        body: JSON.stringify({ email: perfil.email })
+      })
+      await res.json()
+      setResetOk(true)
+      toast('📧 Email enviado — revisa tu bandeja de entrada', 'success')
+    } catch (err) { toast(err.message, 'error') }
+    finally { setEnviando(false) }
   }
 
   if (loading || !perfil) return <p style={{ color:'var(--text3)' }}>Cargando perfil...</p>
@@ -100,7 +96,7 @@ export default function Perfil({ toast }) {
           <div>
             <div style={{ fontSize:26, fontWeight:800, letterSpacing:'-0.5px' }}>{perfil.nombre} {perfil.apellidos}</div>
             <div style={{ display:'inline-flex', alignItems:'center', gap:5, background:'var(--primary-pale)', color:'var(--primary)', padding:'4px 12px', borderRadius:20, fontSize:12, fontWeight:700, marginTop:6 }}>
-              {perfil.rol === 'director' ? '🏫 Director/a' : '👨‍🏫 Profesor/a'}
+              {perfil.rol === 'director' ? '🏫 Director/a' : perfil.rol === 'jefe_estudios' ? '👔 Jefe/a de Estudios' : '👨‍🏫 Profesor/a'}
             </div>
             <div style={{ marginTop:10, fontSize:13, color:'var(--text3)' }}>
               {subiendo ? '⏳ Subiendo foto...' : 'Haz clic en la foto para cambiarla'}
@@ -109,8 +105,8 @@ export default function Perfil({ toast }) {
         </div>
       </div>
 
-      {/* Formulario edición o vista */}
-      <div className="card">
+      {/* Info / Edición */}
+      <div className="card" style={{ marginBottom:16 }}>
         <div style={{ fontWeight:700, fontSize:15, marginBottom:18, paddingBottom:12, borderBottom:'1px solid var(--border)', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
           <span>Información de la cuenta</span>
           {editando && <button className="btn btn-outline btn-sm" onClick={() => { setEditando(false); setForm({ nombre:perfil.nombre, apellidos:perfil.apellidos, asignatura:perfil.asignatura }) }}>Cancelar</button>}
@@ -128,20 +124,10 @@ export default function Perfil({ toast }) {
                 <input type="text" value={form.apellidos} onChange={e => setForm(f => ({...f, apellidos:e.target.value}))} required />
               </div>
             </div>
-            <div className="form-group">
+            <div className="form-group" style={{ marginBottom:24 }}>
               <label>Asignatura</label>
               <input type="text" value={form.asignatura} onChange={e => setForm(f => ({...f, asignatura:e.target.value}))} required />
             </div>
-
-            {/* Cambio de contraseña */}
-            <div style={{ background:'var(--bg)', border:'1.5px solid var(--border)', borderRadius:10, padding:'16px', marginBottom:20 }}>
-              <div style={{ fontSize:12, fontWeight:700, color:'var(--text3)', textTransform:'uppercase', letterSpacing:'.5px', marginBottom:10 }}>🔒 Contraseña</div>
-              <p style={{ fontSize:13, color:'var(--text3)', marginBottom:12 }}>Por seguridad, el cambio de contraseña se realiza por email.</p>
-              <a href="/reset-password" style={{ display:'inline-block', padding:'8px 16px', borderRadius:8, border:'1.5px solid var(--border)', fontSize:13, fontWeight:700, color:'var(--text)', textDecoration:'none', background:'var(--white)' }}>
-                Cambiar contraseña →
-              </a>
-            </div>
-
             <div style={{ display:'flex', justifyContent:'flex-end' }}>
               <button type="submit" className="btn btn-green btn-sm" disabled={guardando}>
                 {guardando ? 'Guardando...' : 'Guardar cambios'}
@@ -151,12 +137,12 @@ export default function Perfil({ toast }) {
         ) : (
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:18 }}>
             {[
-              { label:'Nombre',              value: perfil.nombre },
-              { label:'Apellidos',           value: perfil.apellidos },
-              { label:'Correo electrónico',  value: perfil.email },
-              { label:'Asignatura',          value: perfil.asignatura },
-              { label:'Cuenta creada',       value: fecha },
-              { label:'Reservas realizadas', value: `${perfil.total_reservas} reserva${perfil.total_reservas !== 1 ? 's' : ''}` },
+              { label:'Nombre',             value: perfil.nombre },
+              { label:'Apellidos',          value: perfil.apellidos },
+              { label:'Correo electrónico', value: perfil.email },
+              { label:'Asignatura',         value: perfil.asignatura },
+              { label:'Cuenta creada',      value: fecha },
+              { label:'Reservas realizadas',value: `${perfil.total_reservas ?? 0} reserva${(perfil.total_reservas ?? 0) !== 1 ? 's' : ''}` },
             ].map(f => (
               <div key={f.label}>
                 <label style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'.8px', color:'var(--text3)', marginBottom:6, display:'block' }}>{f.label}</label>
@@ -165,6 +151,27 @@ export default function Perfil({ toast }) {
                 </div>
               </div>
             ))}
+          </div>
+        )}
+      </div>
+
+      {/* Cambio de contraseña */}
+      <div className="card">
+        <div style={{ fontWeight:700, fontSize:15, marginBottom:12, paddingBottom:12, borderBottom:'1px solid var(--border)' }}>
+          🔒 Contraseña
+        </div>
+        {resetOk ? (
+          <div style={{ background:'#d1fae5', border:'1px solid #6ee7b7', borderRadius:8, padding:'12px 16px', fontSize:14, color:'#065f46', fontWeight:600 }}>
+            📧 Te hemos enviado un email a <strong>{perfil.email}</strong> con el enlace para cambiar tu contraseña.
+          </div>
+        ) : (
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:16 }}>
+            <p style={{ fontSize:14, color:'var(--text3)' }}>
+              Recibirás un email con un enlace seguro para establecer una nueva contraseña.
+            </p>
+            <button className="btn btn-outline btn-sm" onClick={handleSolicitarReset} disabled={enviando} style={{ flexShrink:0 }}>
+              {enviando ? '⏳ Enviando...' : '📧 Cambiar contraseña'}
+            </button>
           </div>
         )}
       </div>
