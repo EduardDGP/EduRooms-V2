@@ -1,6 +1,7 @@
 const express = require('express')
 const { getDB } = require('../config/database')
 const { verificarToken, soloSuperadmin } = require('../middleware/auth')
+const { enviarEmailEnlacePago } = require('../utils/email')
 
 const router = express.Router()
 
@@ -49,7 +50,20 @@ router.post('/crear-sesion', verificarToken, soloSuperadmin, async (req, res) =>
       metadata: { centro_id: String(centro_id) },
     })
 
-    res.json({ url: session.url })
+    // Enviar email al director con el enlace
+    try {
+      await enviarEmailEnlacePago({
+        email:         centro.email,
+        nombre:        centro.nombre,
+        centro_nombre: centro.nombre,
+        url:           session.url
+      })
+      console.log(`📧 Enlace de pago enviado a ${centro.email}`)
+    } catch (err) {
+      console.error('Error enviando email enlace pago:', err.message)
+    }
+
+    res.json({ ok: true, mensaje: `Enlace de pago enviado a ${centro.email}` })
   } catch (err) {
     console.error('Error Stripe:', err.message)
     res.status(500).json({ error: err.message })

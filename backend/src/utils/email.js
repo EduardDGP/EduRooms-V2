@@ -99,4 +99,27 @@ async function enviarEmailResetPassword({ email, nombre, token }) {
   })
 }
 
-module.exports = { enviarEmailVerificacion, enviarEmailAprobacion, enviarEmailRechazo, enviarEmailResetPassword }
+async function enviarEmailEnlacePago({ email, nombre, centro_nombre, url }) {
+  await getResend().emails.send({
+    from: FROM, to: email,
+    subject: 'Activa tu suscripción en ExRooms',
+    html: `
+      <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:32px">
+        <div style="margin-bottom:24px">
+          <span style="background:#0a0a0a;color:#fff;padding:8px 16px;border-radius:8px;font-weight:900;font-size:18px;font-family:Georgia,serif">Ex<span style="color:#34d399">Rooms</span></span>
+        </div>
+        <h1 style="font-size:22px;color:#0a0a0a">Hola ${nombre},</h1>
+        <p style="color:#555;font-size:15px;line-height:1.6">
+          Tu centro <strong>${centro_nombre}</strong> está listo para activarse. Para completar el proceso, realiza el pago de la suscripción mensual de <strong>30€/mes</strong> haciendo click en el botón:
+        </p>
+        <div style="margin:32px 0;text-align:center">
+          <a href="${url}" style="background:#0a0a0a;color:#fff;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px">Activar suscripción — 30€/mes →</a>
+        </div>
+        <p style="color:#999;font-size:13px">Este enlace es personal y único para tu centro. Si tienes alguna duda, responde a este email.</p>
+        <hr style="border:none;border-top:1px solid #eee;margin:24px 0">
+        <p style="color:#bbb;font-size:12px;text-align:center">ExRooms · Gestión interna para centros educativos</p>
+      </div>`
+  })
+}
+
+module.exports = { enviarEmailVerificacion, enviarEmailAprobacion, enviarEmailRechazo, enviarEmailResetPassword, enviarEmailEnlacePago }

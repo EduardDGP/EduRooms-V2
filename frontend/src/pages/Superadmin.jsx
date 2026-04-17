@@ -51,12 +51,12 @@ export default function Superadmin() {
     finally { setLoading(false) }
   }
 
+  const [enlacePago, setEnlacePago] = useState(null)
+
   async function enviarEnlacePago(id) {
     try {
       const data = await req('POST', '/stripe/crear-sesion', { centro_id: id })
-      // Copiar al portapapeles
-      await navigator.clipboard.writeText(data.url)
-      alert(`✅ Enlace copiado al portapapeles:\n\n${data.url}\n\nEnvíaselo al director del centro.`)
+      alert(`✅ ${data.mensaje}`)
     } catch (err) { alert('Error: ' + err.message) }
   }
 
