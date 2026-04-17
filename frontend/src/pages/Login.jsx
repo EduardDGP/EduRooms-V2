@@ -87,7 +87,11 @@ export default function Login({ toast }) {
             </button>
           </form>
 
-          <p style={{ textAlign:'center', marginTop:24, fontSize:14, color:'var(--text3)' }}>
+          <p style={{ textAlign:'center', marginTop:16, fontSize:14 }}>
+            <Link to="/reset-password" style={{ color:'var(--text3)', textDecoration:'none' }}>¿Olvidaste tu contraseña?</Link>
+          </p>
+
+          <p style={{ textAlign:'center', marginTop:8, fontSize:14, color:'var(--text3)' }}>
             ¿Primera vez?{' '}
             <Link to="/registro" style={{ color:'var(--primary)', fontWeight:700, textDecoration:'none' }}>Solicitar acceso</Link>
           </p>

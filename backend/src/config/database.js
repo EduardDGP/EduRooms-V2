@@ -150,6 +150,18 @@ function initDB() {
     )
   `)
 
+  // ── Tabla: password_resets ───────────────────────────
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS password_resets (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      profesor_id INTEGER NOT NULL REFERENCES profesores(id) ON DELETE CASCADE,
+      token       TEXT    NOT NULL UNIQUE,
+      expires_at  TEXT    NOT NULL,
+      used        INTEGER NOT NULL DEFAULT 0,
+      created_at  TEXT    DEFAULT (datetime('now'))
+    )
+  `)
+
   // ── Tabla: notificaciones ────────────────────────────
   db.exec(`
     CREATE TABLE IF NOT EXISTS notificaciones (

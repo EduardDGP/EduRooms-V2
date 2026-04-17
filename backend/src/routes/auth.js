@@ -3,7 +3,7 @@ const bcrypt  = require('bcryptjs')
 const crypto  = require('crypto')
 const { getDB } = require('../config/database')
 const { generarToken, verificarToken } = require('../middleware/auth')
-const { enviarEmailVerificacion } = require('../utils/email')
+const { enviarEmailVerificacion, enviarEmailResetPassword } = require('../utils/email')
 
 const router = express.Router()
 
@@ -20,6 +20,51 @@ router.get('/verificar-centro', async (req, res) => {
   res.json({ ok: true, mensaje: 'Email verificado correctamente. El equipo de ExRooms revisará tu solicitud en breve.' })
 })
 
+// ── POST /api/auth/forgot-password ───────────────────────
+router.post('/forgot-password', async (req, res) => {
+  const { email } = req.body
+  if (!email) return res.status(400).json({ error: 'Email requerido' })
+
+  const db      = getDB()
+  const profesor = db.prepare('SELECT * FROM profesores WHERE email = ?').get(email)
+
+  // Siempre respondemos igual para no revelar si el email existe
+  if (!profesor) return res.json({ ok: true, mensaje: 'Si el email existe recibirás un enlace en breve.' })
+
+  // Borrar tokens anteriores
+  db.prepare('DELETE FROM password_resets WHERE profesor_id = ?').run(profesor.id)
+
+  // Crear nuevo token — expira en 1 hora
+  const token     = crypto.randomBytes(32).toString('hex')
+  const expiresAt = new Date(Date.now() + 3600000).toISOString()
+  db.prepare('INSERT INTO password_resets (profesor_id, token, expires_at) VALUES (?, ?, ?)').run(profesor.id, token, expiresAt)
+
+  try {
+    await enviarEmailResetPassword({ email: profesor.email, nombre: profesor.nombre, token })
+  } catch (err) { console.error('Error enviando email reset:', err.message) }
+
+  res.json({ ok: true, mensaje: 'Si el email existe recibirás un enlace en breve.' })
+})
+
+// ── POST /api/auth/reset-password ────────────────────────
+router.post('/reset-password', async (req, res) => {
+  const { token, password } = req.body
+  if (!token || !password) return res.status(400).json({ error: 'Token y contraseña son obligatorios' })
+  if (password.length < 6) return res.status(400).json({ error: 'La contraseña debe tener al menos 6 caracteres' })
+
+  const db    = getDB()
+  const reset = db.prepare('SELECT * FROM password_resets WHERE token = ? AND used = 0').get(token)
+
+  if (!reset) return res.status(400).json({ error: 'Enlace inválido o ya usado' })
+  if (new Date(reset.expires_at) < new Date()) return res.status(400).json({ error: 'El enlace ha expirado. Solicita uno nuevo.' })
+
+  const hash = bcrypt.hashSync(password, 10)
+  db.prepare('UPDATE profesores SET password = ? WHERE id = ?').run(hash, reset.profesor_id)
+  db.prepare('UPDATE password_resets SET used = 1 WHERE id = ?').run(reset.id)
+
+  res.json({ ok: true, mensaje: 'Contraseña actualizada correctamente.' })
+})
+
 // ── GET /api/auth/centros ─────────────────────────────────
 // Lista de centros disponibles para el registro de profesores
 router.get('/centros', (req, res) => {
@@ -32,7 +77,7 @@ router.get('/centros', (req, res) => {
 
 // ── POST /api/auth/centro ─────────────────────────────────
 // El director registra su centro y su cuenta a la vez
-router.post('/centro', async (req, res) => {
+router.post('/centro', (req, res) => {
   const { centro_nombre, centro_codigo, centro_ciudad, centro_provincia,
           nombre, apellidos, email, password } = req.body
 

@@ -135,38 +135,11 @@ export default function Perfil({ toast }) {
 
             {/* Cambio de contraseña */}
             <div style={{ background:'var(--bg)', border:'1.5px solid var(--border)', borderRadius:10, padding:'16px', marginBottom:20 }}>
-              <div style={{ fontSize:12, fontWeight:700, color:'var(--text3)', textTransform:'uppercase', letterSpacing:'.5px', marginBottom:14 }}>🔒 Cambiar contraseña</div>
-              {passOk && (
-                <div style={{ background:'#d1fae5', border:'1px solid #6ee7b7', borderRadius:8, padding:'10px 14px', marginBottom:14, fontSize:13, color:'#065f46', fontWeight:600 }}>
-                  ✅ Contraseña actualizada correctamente
-                </div>
-              )}
-              {passError && (
-                <div style={{ background:'#fee2e2', border:'1px solid #fca5a5', borderRadius:8, padding:'10px 14px', marginBottom:14, fontSize:13, color:'#991b1b' }}>
-                  ⚠️ {passError}
-                </div>
-              )}
-              <form onSubmit={handleCambiarPassword}>
-                <div className="form-group">
-                  <label>Contraseña actual</label>
-                  <input type="password" value={passForm.password_actual} onChange={e => setPassForm(f => ({...f, password_actual:e.target.value}))} required />
-                </div>
-                <div className="form-row">
-                  <div className="form-group">
-                    <label>Nueva contraseña</label>
-                    <input type="password" value={passForm.password_nuevo} onChange={e => setPassForm(f => ({...f, password_nuevo:e.target.value}))} required minLength={6} />
-                  </div>
-                  <div className="form-group">
-                    <label>Confirmar nueva contraseña</label>
-                    <input type="password" value={passForm.password_confirmar} onChange={e => setPassForm(f => ({...f, password_confirmar:e.target.value}))} required minLength={6} />
-                  </div>
-                </div>
-                <div style={{ display:'flex', justifyContent:'flex-end' }}>
-                  <button type="submit" className="btn btn-outline btn-sm" disabled={passSaving}>
-                    {passSaving ? 'Guardando...' : 'Cambiar contraseña'}
-                  </button>
-                </div>
-              </form>
+              <div style={{ fontSize:12, fontWeight:700, color:'var(--text3)', textTransform:'uppercase', letterSpacing:'.5px', marginBottom:10 }}>🔒 Contraseña</div>
+              <p style={{ fontSize:13, color:'var(--text3)', marginBottom:12 }}>Por seguridad, el cambio de contraseña se realiza por email.</p>
+              <a href="/reset-password" style={{ display:'inline-block', padding:'8px 16px', borderRadius:8, border:'1.5px solid var(--border)', fontSize:13, fontWeight:700, color:'var(--text)', textDecoration:'none', background:'var(--white)' }}>
+                Cambiar contraseña →
+              </a>
             </div>
 
             <div style={{ display:'flex', justifyContent:'flex-end' }}>

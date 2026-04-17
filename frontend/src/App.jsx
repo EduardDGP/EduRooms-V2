@@ -14,7 +14,8 @@ import Notificaciones from './pages/Notificaciones'
 import Guardias       from './pages/Guardias'
 import Superadmin      from './pages/Superadmin'
 import SuperadminLogin  from './pages/SuperadminLogin'
-import VerificarCentro  from './pages/Verificarcentro'
+import VerificarCentro  from './pages/VerificarCentro'
+import ResetPassword    from './pages/ResetPassword'
 import Toast          from './components/shared/Toast'
 
 function PrivateRoute({ children }) {
@@ -45,6 +46,7 @@ function AppInner() {
         <Route path="/superadmin/login" element={<SuperadminLogin />} />
         <Route path="/superadmin"       element={<Superadmin />} />
         <Route path="/verificar-centro" element={<VerificarCentro />} />
+        <Route path="/reset-password"   element={<ResetPassword />} />
         <Route path="/" element={<PrivateRoute><Layout toast={showToast} /></PrivateRoute>}>
           <Route index element={<Navigate to="/aulas" replace />} />
           <Route path="aulas"          element={<Aulas          toast={showToast} />} />
