@@ -51,6 +51,15 @@ export default function Superadmin() {
     finally { setLoading(false) }
   }
 
+  async function enviarEnlacePago(id) {
+    try {
+      const data = await req('POST', '/stripe/crear-sesion', { centro_id: id })
+      // Copiar al portapapeles
+      await navigator.clipboard.writeText(data.url)
+      alert(`✅ Enlace copiado al portapapeles:\n\n${data.url}\n\nEnvíaselo al director del centro.`)
+    } catch (err) { alert('Error: ' + err.message) }
+  }
+
   async function aprobar(id, plan) {
     try { await req('PUT', `/superadmin/centros/${id}/aprobar`, { plan }); cargar() }
     catch (err) { alert(err.message) }
@@ -166,7 +175,7 @@ export default function Superadmin() {
                         <div style={{ display:'flex', gap:8, flexShrink:0, flexWrap:'wrap', justifyContent:'flex-end' }}>
                           {c.aprobado === 0 && (<>
                             <button onClick={() => aprobar(c.id,'pruebas')} style={{ padding:'7px 12px', borderRadius:8, border:'none', cursor:'pointer', fontFamily:'Outfit,sans-serif', fontSize:12, fontWeight:700, background:'#ede9fe', color:'#5b21b6' }}>🧪 Pruebas</button>
-                            <button onClick={() => aprobar(c.id,'activo')} style={{ padding:'7px 12px', borderRadius:8, border:'none', cursor:'pointer', fontFamily:'Outfit,sans-serif', fontSize:12, fontWeight:700, background:'#d1fae5', color:'#065f46' }}>✅ Pago</button>
+                            <button onClick={() => enviarEnlacePago(c.id)} style={{ padding:'7px 12px', borderRadius:8, border:'none', cursor:'pointer', fontFamily:'Outfit,sans-serif', fontSize:12, fontWeight:700, background:'#d1fae5', color:'#065f46' }}>💳 Enviar enlace de pago</button>
                             <button onClick={() => rechazar(c.id)} style={{ padding:'7px 12px', borderRadius:8, border:'none', cursor:'pointer', fontFamily:'Outfit,sans-serif', fontSize:12, fontWeight:700, background:'#fee2e2', color:'#991b1b' }}>❌ Rechazar</button>
                           </>)}
                           {c.aprobado === 1 && c.plan !== 'bloqueado' && (

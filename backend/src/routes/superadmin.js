@@ -1,285 +1,163 @@
-import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+const express = require('express')
+const { getDB } = require('../config/database')
+const { verificarToken, soloSuperadmin } = require('../middleware/auth')
+const { enviarEmailAprobacion, enviarEmailRechazo } = require('../utils/email')
 
-const BASE = '/api'
-const req = (method, path, body) =>
-  fetch(BASE + path, {
-    method,
-    headers: { 'Content-Type':'application/json', Authorization:'Bearer '+localStorage.getItem('edu_token') },
-    ...(body ? { body: JSON.stringify(body) } : {})
-  }).then(async r => { const d = await r.json(); if (!r.ok) throw new Error(d.error || 'Error'); return d })
+const router = express.Router()
+router.use(verificarToken, soloSuperadmin)
 
-const PLAN_CONFIG = {
-  pendiente: { bg:'#fffbeb', color:'#92400e', border:'#fcd34d', label:'⏳ Pendiente' },
-  pruebas:   { bg:'#ede9fe', color:'#5b21b6', border:'#c4b5fd', label:'🧪 Pruebas'   },
-  activo:    { bg:'#d1fae5', color:'#065f46', border:'#6ee7b7', label:'✅ Activo'    },
-  bloqueado: { bg:'#fee2e2', color:'#991b1b', border:'#fca5a5', label:'🔒 Bloqueado' },
-  rechazado: { bg:'#f1f5f9', color:'#475569', border:'#cbd5e1', label:'❌ Rechazado' },
-}
+// ── GET /api/superadmin/centros ───────────────────────────
+// Todos los centros con sus estadísticas
+router.get('/centros', (req, res) => {
+  const db = getDB()
+  const centros = db.prepare(`
+    SELECT c.*,
+           COUNT(DISTINCT p.id) as total_profesores,
+           p_dir.nombre as director_nombre,
+           p_dir.apellidos as director_apellidos,
+           p_dir.email as director_email
+    FROM centros c
+    LEFT JOIN profesores p ON p.centro_id = c.id AND p.rol != 'superadmin'
+    LEFT JOIN profesores p_dir ON p_dir.centro_id = c.id AND p_dir.rol = 'director'
+    GROUP BY c.id
+    ORDER BY c.created_at DESC
+  `).all()
+  res.json(centros)
+})
 
-function formatFecha(str) {
-  if (!str) return '—'
-  return new Date(str + 'Z').toLocaleDateString('es-ES', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' })
-}
+// ── GET /api/superadmin/stats ─────────────────────────────
+router.get('/stats', (req, res) => {
+  const db = getDB()
+  const centros_total      = db.prepare("SELECT COUNT(*) as n FROM centros").get().n
+  const centros_pendientes = db.prepare("SELECT COUNT(*) as n FROM centros WHERE aprobado = 0").get().n
+  const centros_activos    = db.prepare("SELECT COUNT(*) as n FROM centros WHERE aprobado = 1").get().n
+  const centros_pruebas    = db.prepare("SELECT COUNT(*) as n FROM centros WHERE plan = 'pruebas'").get().n
+  const centros_pago       = db.prepare("SELECT COUNT(*) as n FROM centros WHERE plan = 'activo'").get().n
+  const total_profesores   = db.prepare("SELECT COUNT(*) as n FROM profesores WHERE rol NOT IN ('superadmin','director')").get().n
+  const total_reservas     = db.prepare("SELECT COUNT(*) as n FROM reservas").get().n
+  const total_guardias     = db.prepare("SELECT COUNT(*) as n FROM guardias").get().n
+  const total_mensajes     = db.prepare("SELECT COUNT(*) as n FROM mensajes").get().n
 
-export default function Superadmin() {
-  const navigate   = useNavigate()
-  const [tab,      setTab]      = useState('pendientes')
-  const [centros,  setCentros]  = useState([])
-  const [stats,    setStats]    = useState(null)
-  const [actividad,setActividad]= useState(null)
-  const [loading,  setLoading]  = useState(true)
+  res.json({ centros_total, centros_pendientes, centros_activos, centros_pruebas, centros_pago, total_profesores, total_reservas, total_guardias, total_mensajes })
+})
 
-  useEffect(() => {
-    const token = localStorage.getItem('edu_token')
-    if (!token) { navigate('/superadmin/login'); return }
-    cargar()
-  }, [])
+// ── GET /api/superadmin/actividad ─────────────────────────
+router.get('/actividad', (req, res) => {
+  const db = getDB()
 
-  async function cargar() {
-    setLoading(true)
+  const ultimas_reservas = db.prepare(`
+    SELECT r.created_at, r.asignatura, r.fecha, r.franja_label,
+           a.nombre as aula_nombre, c.nombre as centro_nombre,
+           p.nombre as prof_nombre, p.apellidos as prof_apellidos
+    FROM reservas r
+    JOIN aulas a ON a.id = r.aula_id
+    JOIN centros c ON c.id = r.centro_id
+    JOIN profesores p ON p.id = r.profesor_id
+    ORDER BY r.created_at DESC LIMIT 10
+  `).all()
+
+  const ultimas_guardias = db.prepare(`
+    SELECT g.created_at, g.fecha, g.franja_label, g.curso, g.grupo,
+           c.nombre as centro_nombre,
+           p.nombre as prof_nombre, p.apellidos as prof_apellidos
+    FROM guardias g
+    JOIN centros c ON c.id = g.centro_id
+    JOIN profesores p ON p.id = g.profesor_id
+    ORDER BY g.created_at DESC LIMIT 10
+  `).all()
+
+  const ultimos_mensajes = db.prepare(`
+    SELECT m.created_at, m.texto,
+           p1.nombre as de_nombre, p1.apellidos as de_apellidos,
+           p2.nombre as para_nombre, p2.apellidos as para_apellidos,
+           c.nombre as centro_nombre
+    FROM mensajes m
+    JOIN profesores p1 ON p1.id = m.de_id
+    JOIN profesores p2 ON p2.id = m.para_id
+    LEFT JOIN centros c ON c.id = p1.centro_id
+    ORDER BY m.created_at DESC LIMIT 10
+  `).all()
+
+  const ultimos_accesos = db.prepare(`
+    SELECT p.nombre, p.apellidos, p.email, p.rol,
+           c.nombre as centro_nombre, p.created_at
+    FROM profesores p
+    LEFT JOIN centros c ON c.id = p.centro_id
+    WHERE p.rol = 'director'
+    ORDER BY p.created_at DESC LIMIT 10
+  `).all()
+
+  const stats_por_centro = db.prepare(`
+    SELECT c.nombre, c.plan, c.aprobado,
+           COUNT(DISTINCT p.id) as profesores,
+           COUNT(DISTINCT r.id) as reservas,
+           COUNT(DISTINCT g.id) as guardias
+    FROM centros c
+    LEFT JOIN profesores p ON p.centro_id = c.id AND p.rol NOT IN ('superadmin','director')
+    LEFT JOIN reservas r ON r.centro_id = c.id
+    LEFT JOIN guardias g ON g.centro_id = c.id
+    WHERE c.aprobado = 1
+    GROUP BY c.id
+    ORDER BY reservas DESC
+  `).all()
+
+  res.json({ ultimas_reservas, ultimas_guardias, ultimos_mensajes, ultimos_accesos, stats_por_centro })
+})
+
+// ── PUT /api/superadmin/centros/:id/aprobar ───────────────
+router.put('/centros/:id/aprobar', async (req, res) => {
+  const { plan } = req.body  // 'pruebas' o 'activo'
+  if (!['pruebas','activo'].includes(plan))
+    return res.status(400).json({ error: 'Plan debe ser "pruebas" o "activo"' })
+
+  const db = getDB()
+  const centro = db.prepare('SELECT * FROM centros WHERE id = ?').get(req.params.id)
+  if (!centro) return res.status(404).json({ error: 'Centro no encontrado' })
+
+  db.prepare('UPDATE centros SET aprobado = 1, plan = ? WHERE id = ?').run(plan, req.params.id)
+
+  // Enviar email al director
+  const director = db.prepare("SELECT nombre, apellidos, email FROM profesores WHERE centro_id = ? AND rol = 'director'").get(req.params.id)
+  if (director) {
     try {
-      const [c, s, a] = await Promise.all([
-        req('GET', '/superadmin/centros'),
-        req('GET', '/superadmin/stats'),
-        req('GET', '/superadmin/actividad'),
-      ])
-      setCentros(c); setStats(s); setActividad(a)
-    } catch (err) {
-      if (err.message.includes('403') || err.message.includes('Token')) navigate('/superadmin/login')
-    }
-    finally { setLoading(false) }
+      await enviarEmailAprobacion({ email: director.email, nombre: director.nombre, centro_nombre: centro.nombre, plan })
+    } catch (err) { console.error('Error email aprobación:', err.message) }
   }
 
-  async function enviarEnlacePago(id) {
+  res.json({ ok: true, mensaje: `Centro aprobado con plan ${plan}` })
+})
+
+// ── PUT /api/superadmin/centros/:id/rechazar ──────────────
+router.put('/centros/:id/rechazar', async (req, res) => {
+  const db = getDB()
+  const centro = db.prepare('SELECT * FROM centros WHERE id = ?').get(req.params.id)
+  if (!centro) return res.status(404).json({ error: 'Centro no encontrado' })
+
+  db.prepare('UPDATE centros SET aprobado = 2, plan = ? WHERE id = ?').run('rechazado', req.params.id)
+
+  // Enviar email al director
+  const director = db.prepare("SELECT nombre, apellidos, email FROM profesores WHERE centro_id = ? AND rol = 'director'").get(req.params.id)
+  if (director) {
     try {
-      const data = await req('POST', '/stripe/crear-sesion', { centro_id: id })
-      // Copiar al portapapeles
-      await navigator.clipboard.writeText(data.url)
-      alert(`✅ Enlace copiado al portapapeles:\n\n${data.url}\n\nEnvíaselo al director del centro.`)
-    } catch (err) { alert('Error: ' + err.message) }
+      await enviarEmailRechazo({ email: director.email, nombre: director.nombre, centro_nombre: centro.nombre })
+    } catch (err) { console.error('Error email rechazo:', err.message) }
   }
 
-  async function aprobar(id, plan) {
-    try { await req('PUT', `/superadmin/centros/${id}/aprobar`, { plan }); cargar() }
-    catch (err) { alert(err.message) }
-  }
-  async function rechazar(id) {
-    if (!confirm('¿Rechazar este centro?')) return
-    try { await req('PUT', `/superadmin/centros/${id}/rechazar`); cargar() }
-    catch (err) { alert(err.message) }
-  }
-  async function bloquear(id) {
-    if (!confirm('¿Bloquear este centro?')) return
-    try { await req('PUT', `/superadmin/centros/${id}/bloquear`); cargar() }
-    catch (err) { alert(err.message) }
-  }
-  async function eliminar(id) {
-    if (!confirm('¿Eliminar este centro y todos sus datos? Esta acción es irreversible.')) return
-    try { await req('DELETE', `/superadmin/centros/${id}`); cargar() }
-    catch (err) { alert(err.message) }
-  }
-  function logout() { localStorage.removeItem('edu_token'); navigate('/superadmin/login') }
+  res.json({ ok: true })
+})
 
-  const pendientes = centros.filter(c => c.aprobado === 0)
-  const activos    = centros.filter(c => c.aprobado === 1)
-  const rechazados = centros.filter(c => c.aprobado === 2)
+// ── PUT /api/superadmin/centros/:id/bloquear ─────────────
+router.put('/centros/:id/bloquear', (req, res) => {
+  const db = getDB()
+  db.prepare('UPDATE centros SET plan = ? WHERE id = ?').run('bloqueado', req.params.id)
+  res.json({ ok: true })
+})
 
-  const s = (style) => ({ fontFamily:'Outfit,sans-serif', ...style })
+// ── DELETE /api/superadmin/centros/:id ───────────────────
+router.delete('/centros/:id', (req, res) => {
+  const db = getDB()
+  db.prepare('DELETE FROM centros WHERE id = ?').run(req.params.id)
+  res.json({ ok: true })
+})
 
-  return (
-    <div style={{ minHeight:'100vh', background:'#0a0a0a', fontFamily:'Outfit,sans-serif' }}>
-      {/* Navbar */}
-      <nav style={{ background:'#111', borderBottom:'1px solid rgba(255,255,255,.08)', padding:'0 32px', height:60, display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-        <div style={{ display:'flex', alignItems:'center', gap:12 }}>
-          <div style={{ width:32, height:32, borderRadius:8, background:'#10b981', display:'flex', alignItems:'center', justifyContent:'center', fontSize:16, fontWeight:900, color:'#fff', fontFamily:'Georgia,serif' }}>E</div>
-          <span style={{ fontSize:16, fontWeight:800, color:'#fff' }}>Ex<span style={{ color:'#34d399' }}>Rooms</span> <span style={{ fontSize:12, color:'rgba(255,255,255,.4)', fontWeight:400 }}>· Superadmin</span></span>
-        </div>
-        <button onClick={logout} style={{ background:'transparent', border:'1px solid rgba(255,255,255,.15)', color:'rgba(255,255,255,.6)', padding:'7px 16px', borderRadius:8, cursor:'pointer', fontFamily:'Outfit,sans-serif', fontSize:13 }}>
-          Cerrar sesión
-        </button>
-      </nav>
-
-      <div style={{ padding:'32px', maxWidth:1200, margin:'0 auto' }}>
-
-        {/* Stats globales */}
-        {stats && (
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(9,1fr)', gap:10, marginBottom:28 }}>
-            {[
-              { label:'Centros',     value: stats.centros_total,      color:'#fff'    },
-              { label:'Pendientes',  value: stats.centros_pendientes, color:'#fcd34d' },
-              { label:'Activos',     value: stats.centros_activos,    color:'#34d399' },
-              { label:'Pruebas',     value: stats.centros_pruebas,    color:'#a78bfa' },
-              { label:'De pago',     value: stats.centros_pago,       color:'#34d399' },
-              { label:'Profesores',  value: stats.total_profesores,   color:'#60a5fa' },
-              { label:'Reservas',    value: stats.total_reservas,     color:'#f472b6' },
-              { label:'Guardias',    value: stats.total_guardias,     color:'#fb923c' },
-              { label:'Mensajes',    value: stats.total_mensajes,     color:'#4ade80' },
-            ].map(s => (
-              <div key={s.label} style={{ background:'#111', borderRadius:10, padding:'14px', border:'1px solid rgba(255,255,255,.08)', textAlign:'center' }}>
-                <div style={{ fontSize:22, fontWeight:800, color:s.color }}>{s.value}</div>
-                <div style={{ fontSize:11, color:'rgba(255,255,255,.4)', marginTop:3 }}>{s.label}</div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Tabs */}
-        <div style={{ display:'flex', gap:4, marginBottom:20, background:'#111', borderRadius:10, padding:4, border:'1px solid rgba(255,255,255,.08)', width:'fit-content', flexWrap:'wrap' }}>
-          {[
-            { key:'pendientes', label:`⏳ Pendientes (${pendientes.length})` },
-            { key:'activos',    label:`✅ Activos (${activos.length})`       },
-            { key:'rechazados', label:`❌ Rechazados (${rechazados.length})` },
-            { key:'todos',      label:`📋 Todos (${centros.length})`         },
-            { key:'actividad',  label:`📊 Actividad`                         },
-            { key:'estadisticas',label:`🏆 Por centro`                       },
-          ].map(t => (
-            <button key={t.key} onClick={() => setTab(t.key)} style={{
-              padding:'8px 14px', borderRadius:7, border:'none', cursor:'pointer',
-              fontFamily:'Outfit,sans-serif', fontSize:12, fontWeight:700,
-              background: tab===t.key ? '#fff' : 'transparent',
-              color: tab===t.key ? '#0a0a0a' : 'rgba(255,255,255,.4)',
-            }}>{t.label}</button>
-          ))}
-        </div>
-
-        {loading ? <p style={{ color:'rgba(255,255,255,.4)' }}>Cargando...</p> : (
-          <>
-            {/* Lista centros */}
-            {['pendientes','activos','rechazados','todos'].includes(tab) && (
-              <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
-                {(tab==='pendientes' ? pendientes : tab==='activos' ? activos : tab==='rechazados' ? rechazados : centros).map(c => {
-                  const planCfg = PLAN_CONFIG[c.plan] || PLAN_CONFIG.pendiente
-                  const fecha   = new Date(c.created_at + 'Z').toLocaleDateString('es-ES', { day:'numeric', month:'long', year:'numeric' })
-                  return (
-                    <div key={c.id} style={{ background:'#111', borderRadius:12, padding:20, border:'1px solid rgba(255,255,255,.08)' }}>
-                      <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:16 }}>
-                        <div style={{ flex:1 }}>
-                          <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:8 }}>
-                            {c.logo && <img src={c.logo} alt="" style={{ width:32, height:32, borderRadius:6, objectFit:'contain', background:'#fff', padding:2 }} />}
-                            <div>
-                              <div style={{ fontWeight:700, fontSize:16, color:'#fff' }}>{c.nombre}</div>
-                              <div style={{ fontSize:12, color:'rgba(255,255,255,.4)' }}>Código: {c.codigo} · {c.ciudad || '—'}</div>
-                            </div>
-                            <span style={{ padding:'3px 10px', borderRadius:20, fontSize:11, fontWeight:700, background:planCfg.bg, color:planCfg.color, border:`1px solid ${planCfg.border}` }}>
-                              {planCfg.label}
-                            </span>
-                          </div>
-                          <div style={{ display:'flex', gap:16, fontSize:12, color:'rgba(255,255,255,.4)', flexWrap:'wrap' }}>
-                            {c.director_nombre && <span>👤 {c.director_nombre} {c.director_apellidos} — {c.director_email}</span>}
-                            <span>👥 {c.total_profesores} profesores</span>
-                            <span>📅 {fecha}</span>
-                            <span>{c.email_verificado ? '✅ Email verificado' : '⏳ Email sin verificar'}</span>
-                          </div>
-                        </div>
-                        <div style={{ display:'flex', gap:8, flexShrink:0, flexWrap:'wrap', justifyContent:'flex-end' }}>
-                          {c.aprobado === 0 && (<>
-                            <button onClick={() => aprobar(c.id,'pruebas')} style={{ padding:'7px 12px', borderRadius:8, border:'none', cursor:'pointer', fontFamily:'Outfit,sans-serif', fontSize:12, fontWeight:700, background:'#ede9fe', color:'#5b21b6' }}>🧪 Pruebas</button>
-                            <button onClick={() => enviarEnlacePago(c.id)} style={{ padding:'7px 12px', borderRadius:8, border:'none', cursor:'pointer', fontFamily:'Outfit,sans-serif', fontSize:12, fontWeight:700, background:'#d1fae5', color:'#065f46' }}>💳 Enviar enlace de pago</button>
-                            <button onClick={() => rechazar(c.id)} style={{ padding:'7px 12px', borderRadius:8, border:'none', cursor:'pointer', fontFamily:'Outfit,sans-serif', fontSize:12, fontWeight:700, background:'#fee2e2', color:'#991b1b' }}>❌ Rechazar</button>
-                          </>)}
-                          {c.aprobado === 1 && c.plan !== 'bloqueado' && (
-                            <button onClick={() => bloquear(c.id)} style={{ padding:'7px 12px', borderRadius:8, border:'none', cursor:'pointer', fontFamily:'Outfit,sans-serif', fontSize:12, fontWeight:700, background:'#fef3c7', color:'#92400e' }}>🔒 Bloquear</button>
-                          )}
-                          {c.aprobado === 1 && c.plan === 'bloqueado' && (
-                            <button onClick={() => aprobar(c.id,'activo')} style={{ padding:'7px 12px', borderRadius:8, border:'none', cursor:'pointer', fontFamily:'Outfit,sans-serif', fontSize:12, fontWeight:700, background:'#d1fae5', color:'#065f46' }}>🔓 Desbloquear</button>
-                          )}
-                          {c.aprobado === 2 && (
-                            <button onClick={() => aprobar(c.id,'pruebas')} style={{ padding:'7px 12px', borderRadius:8, border:'none', cursor:'pointer', fontFamily:'Outfit,sans-serif', fontSize:12, fontWeight:700, background:'#ede9fe', color:'#5b21b6' }}>🔄 Reactivar</button>
-                          )}
-                          <button onClick={() => eliminar(c.id)} style={{ padding:'7px 10px', borderRadius:8, border:'1px solid rgba(255,255,255,.1)', cursor:'pointer', background:'transparent', color:'rgba(255,255,255,.4)', fontSize:13 }}>🗑️</button>
-                        </div>
-                      </div>
-                    </div>
-                  )
-                })}
-                {tab === 'pendientes' && pendientes.length === 0 && (
-                  <div style={{ textAlign:'center', padding:'60px 0', color:'rgba(255,255,255,.2)' }}>
-                    <div style={{ fontSize:48, marginBottom:12 }}>✅</div>
-                    <p>No hay solicitudes pendientes</p>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Actividad reciente */}
-            {tab === 'actividad' && actividad && (
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:20 }}>
-                {/* Últimas reservas */}
-                <div style={{ background:'#111', borderRadius:12, padding:20, border:'1px solid rgba(255,255,255,.08)' }}>
-                  <div style={{ fontWeight:700, fontSize:14, color:'#fff', marginBottom:14 }}>📅 Últimas reservas</div>
-                  {actividad.ultimas_reservas.length === 0 ? <p style={{ color:'rgba(255,255,255,.3)', fontSize:13 }}>Sin reservas</p> :
-                  actividad.ultimas_reservas.map((r, i) => (
-                    <div key={i} style={{ padding:'10px 0', borderBottom:'1px solid rgba(255,255,255,.06)', fontSize:12 }}>
-                      <div style={{ color:'#fff', fontWeight:600 }}>{r.prof_nombre} {r.prof_apellidos} → {r.aula_nombre}</div>
-                      <div style={{ color:'rgba(255,255,255,.4)', marginTop:2 }}>{r.centro_nombre} · {r.fecha} {r.franja_label} · {formatFecha(r.created_at)}</div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Últimas guardias */}
-                <div style={{ background:'#111', borderRadius:12, padding:20, border:'1px solid rgba(255,255,255,.08)' }}>
-                  <div style={{ fontWeight:700, fontSize:14, color:'#fff', marginBottom:14 }}>🛡️ Últimas guardias</div>
-                  {actividad.ultimas_guardias.length === 0 ? <p style={{ color:'rgba(255,255,255,.3)', fontSize:13 }}>Sin guardias</p> :
-                  actividad.ultimas_guardias.map((g, i) => (
-                    <div key={i} style={{ padding:'10px 0', borderBottom:'1px solid rgba(255,255,255,.06)', fontSize:12 }}>
-                      <div style={{ color:'#fff', fontWeight:600 }}>{g.prof_nombre} {g.prof_apellidos} · {g.curso} {g.grupo}</div>
-                      <div style={{ color:'rgba(255,255,255,.4)', marginTop:2 }}>{g.centro_nombre} · {g.fecha} {g.franja_label} · {formatFecha(g.created_at)}</div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Últimos mensajes */}
-                <div style={{ background:'#111', borderRadius:12, padding:20, border:'1px solid rgba(255,255,255,.08)' }}>
-                  <div style={{ fontWeight:700, fontSize:14, color:'#fff', marginBottom:14 }}>💬 Últimos mensajes</div>
-                  {actividad.ultimos_mensajes.length === 0 ? <p style={{ color:'rgba(255,255,255,.3)', fontSize:13 }}>Sin mensajes</p> :
-                  actividad.ultimos_mensajes.map((m, i) => (
-                    <div key={i} style={{ padding:'10px 0', borderBottom:'1px solid rgba(255,255,255,.06)', fontSize:12 }}>
-                      <div style={{ color:'#fff', fontWeight:600 }}>{m.de_nombre} {m.de_apellidos} → {m.para_nombre} {m.para_apellidos}</div>
-                      <div style={{ color:'rgba(255,255,255,.4)', marginTop:2 }}>{m.centro_nombre} · {m.texto?.slice(0,50)}{m.texto?.length > 50 ? '...' : ''} · {formatFecha(m.created_at)}</div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Últimos directores registrados */}
-                <div style={{ background:'#111', borderRadius:12, padding:20, border:'1px solid rgba(255,255,255,.08)' }}>
-                  <div style={{ fontWeight:700, fontSize:14, color:'#fff', marginBottom:14 }}>🏫 Últimos directores registrados</div>
-                  {actividad.ultimos_accesos.length === 0 ? <p style={{ color:'rgba(255,255,255,.3)', fontSize:13 }}>Sin registros</p> :
-                  actividad.ultimos_accesos.map((a, i) => (
-                    <div key={i} style={{ padding:'10px 0', borderBottom:'1px solid rgba(255,255,255,.06)', fontSize:12 }}>
-                      <div style={{ color:'#fff', fontWeight:600 }}>{a.nombre} {a.apellidos}</div>
-                      <div style={{ color:'rgba(255,255,255,.4)', marginTop:2 }}>{a.centro_nombre} · {a.email} · {formatFecha(a.created_at)}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Estadísticas por centro */}
-            {tab === 'estadisticas' && actividad && (
-              <div style={{ background:'#111', borderRadius:12, border:'1px solid rgba(255,255,255,.08)', overflow:'hidden' }}>
-                <div style={{ display:'grid', gridTemplateColumns:'2fr 100px 80px 80px 80px', padding:'12px 20px', background:'rgba(255,255,255,.05)', fontSize:11, fontWeight:700, color:'rgba(255,255,255,.4)', textTransform:'uppercase', letterSpacing:'.5px', gap:10 }}>
-                  <span>Centro</span><span>Plan</span><span>Profesores</span><span>Reservas</span><span>Guardias</span>
-                </div>
-                {actividad.stats_por_centro.length === 0 ? (
-                  <div style={{ textAlign:'center', padding:'40px 0', color:'rgba(255,255,255,.3)' }}>No hay centros activos</div>
-                ) : actividad.stats_por_centro.map((c, i) => {
-                  const planCfg = PLAN_CONFIG[c.plan] || PLAN_CONFIG.pendiente
-                  return (
-                    <div key={i} style={{ display:'grid', gridTemplateColumns:'2fr 100px 80px 80px 80px', padding:'14px 20px', gap:10, alignItems:'center', borderBottom:'1px solid rgba(255,255,255,.06)' }}>
-                      <div style={{ color:'#fff', fontWeight:600, fontSize:14 }}>{c.nombre}</div>
-                      <span style={{ padding:'3px 10px', borderRadius:20, fontSize:11, fontWeight:700, background:planCfg.bg, color:planCfg.color, border:`1px solid ${planCfg.border}`, textAlign:'center' }}>{planCfg.label}</span>
-                      <div style={{ color:'#60a5fa', fontWeight:700, fontSize:16, textAlign:'center' }}>{c.profesores}</div>
-                      <div style={{ color:'#f472b6', fontWeight:700, fontSize:16, textAlign:'center' }}>{c.reservas}</div>
-                      <div style={{ color:'#fb923c', fontWeight:700, fontSize:16, textAlign:'center' }}>{c.guardias}</div>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-          </>
-        )}
-      </div>
-    </div>
-  )
-}
+module.exports = router
