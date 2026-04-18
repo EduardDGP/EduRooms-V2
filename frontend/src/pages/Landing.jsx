@@ -1,6 +1,17 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { LayoutGrid, Shield, Users, Bell, MessageSquare, BookOpen, Clock, CheckCircle, ChevronDown, ArrowRight, Zap } from 'lucide-react'
+
+function useVisible(threshold = 0.15) {
+  const ref = useRef(null)
+  const [visible, setVisible] = useState(false)
+  useEffect(() => {
+    const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) setVisible(true) }, { threshold })
+    if (ref.current) obs.observe(ref.current)
+    return () => obs.disconnect()
+  }, [])
+  return [ref, visible]
+}
 
 function FAQ({ q, a }) {
   const [open, setOpen] = useState(false)
@@ -17,9 +28,10 @@ function FAQ({ q, a }) {
   )
 }
 
-function FeatureCard({ icon, title, desc }) {
+function FeatureCard({ icon, title, desc, delay = 0 }) {
+  const [ref, visible] = useVisible()
   return (
-    <div style={{ background:'rgba(255,255,255,.03)', border:'1px solid rgba(255,255,255,.08)', borderRadius:16, padding:'32px 28px' }}>
+    <div ref={ref} style={{ background:'rgba(255,255,255,.03)', border:'1px solid rgba(255,255,255,.08)', borderRadius:16, padding:'32px 28px', opacity: visible ? 1 : 0, transform: visible ? 'translateY(0)' : 'translateY(28px)', transition: `opacity .6s ${delay}ms, transform .6s ${delay}ms` }}>
       <div style={{ width:48, height:48, borderRadius:12, background:'rgba(52,211,153,.12)', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:20, color:'#34d399' }}>
         {icon}
       </div>
@@ -30,11 +42,22 @@ function FeatureCard({ icon, title, desc }) {
 }
 
 export default function Landing() {
+  const [heroVisible, setHeroVisible] = useState(false)
+  const [scrollY, setScrollY] = useState(0)
+  const [savingsRef, savingsVisible] = useVisible()
+  const [ctaRef, ctaVisible] = useVisible()
+
+  useEffect(() => {
+    setTimeout(() => setHeroVisible(true), 80)
+    const onScroll = () => setScrollY(window.scrollY)
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
   return (
     <div style={{ background:'#080808', minHeight:'100vh', fontFamily:"'Outfit', sans-serif", color:'#fff', overflowX:'hidden' }}>
 
       {/* Navbar */}
-      <nav style={{ position:'fixed', top:0, left:0, right:0, zIndex:100, padding:'0 40px', height:64, display:'flex', alignItems:'center', justifyContent:'space-between', background:'rgba(8,8,8,.95)', borderBottom:'1px solid rgba(255,255,255,.06)' }}>
+      <nav style={{ position:'fixed', top:0, left:0, right:0, zIndex:100, padding:'0 40px', height:64, display:'flex', alignItems:'center', justifyContent:'space-between', background: scrollY > 40 ? 'rgba(8,8,8,.92)' : 'transparent', backdropFilter: scrollY > 40 ? 'blur(20px)' : 'none', borderBottom: scrollY > 40 ? '1px solid rgba(255,255,255,.06)' : 'none', transition:'all .3s' }}>
         <div style={{ display:'flex', alignItems:'center', gap:10 }}>
           <div style={{ width:34, height:34, borderRadius:8, background:'#0a0a0a', border:'1.5px solid rgba(255,255,255,.15)', display:'flex', alignItems:'center', justifyContent:'center' }}>
             <span style={{ fontSize:17, fontWeight:900, color:'#fff', fontFamily:'Georgia,serif' }}>E</span>
@@ -52,16 +75,16 @@ export default function Landing() {
 
       {/* Hero */}
       <section style={{ minHeight:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'120px 40px 80px', textAlign:'center' }}>
-        <div style={{ display:'inline-flex', alignItems:'center', gap:8, background:'rgba(52,211,153,.1)', border:'1px solid rgba(52,211,153,.2)', borderRadius:100, padding:'6px 16px', fontSize:13, fontWeight:600, color:'#34d399', marginBottom:32 }}>
+        <div style={{ display:'inline-flex', alignItems:'center', gap:8, background:'rgba(52,211,153,.1)', border:'1px solid rgba(52,211,153,.2)', borderRadius:100, padding:'6px 16px', fontSize:13, fontWeight:600, color:'#34d399', marginBottom:32, opacity: heroVisible ? 1 : 0, transform: heroVisible ? 'translateY(0)' : 'translateY(20px)', transition:'opacity .8s, transform .8s' }}>
           <Zap size={13} /> Gestión educativa moderna
         </div>
-        <h1 style={{ fontSize:'clamp(42px, 7vw, 76px)', fontWeight:900, lineHeight:1.05, letterSpacing:'-2px', marginBottom:24 }}>
+        <h1 style={{ fontSize:'clamp(42px, 7vw, 76px)', fontWeight:900, lineHeight:1.05, letterSpacing:'-2px', marginBottom:24, opacity: heroVisible ? 1 : 0, transform: heroVisible ? 'translateY(0)' : 'translateY(30px)', transition:'opacity .8s 150ms, transform .8s 150ms' }}>
           Tu centro educativo,<br /><span style={{ color:'#34d399' }}>organizado al instante</span>
         </h1>
-        <p style={{ fontSize:20, color:'rgba(255,255,255,.55)', lineHeight:1.7, maxWidth:580, margin:'0 auto 48px' }}>
+        <p style={{ fontSize:20, color:'rgba(255,255,255,.55)', lineHeight:1.7, maxWidth:580, margin:'0 auto 48px', opacity: heroVisible ? 1 : 0, transform: heroVisible ? 'translateY(0)' : 'translateY(30px)', transition:'opacity .8s 300ms, transform .8s 300ms' }}>
           ExRooms unifica la gestión de aulas, guardias, alumnos y comunicación interna en una sola plataforma. Sin papeles. Sin confusión.
         </p>
-        <div style={{ display:'flex', gap:14, justifyContent:'center', flexWrap:'wrap' }}>
+        <div style={{ display:'flex', gap:14, justifyContent:'center', flexWrap:'wrap', opacity: heroVisible ? 1 : 0, transform: heroVisible ? 'translateY(0)' : 'translateY(30px)', transition:'opacity .8s 450ms, transform .8s 450ms' }}>
           <Link to="/registro" style={{ display:'inline-flex', alignItems:'center', gap:8, background:'#34d399', color:'#0a0a0a', textDecoration:'none', fontSize:16, fontWeight:700, padding:'15px 32px', borderRadius:10 }}>
             Registrar mi centro <ArrowRight size={18} />
           </Link>
@@ -94,14 +117,14 @@ export default function Landing() {
             <p style={{ color:'#34d399', fontSize:13, fontWeight:700, textTransform:'uppercase', letterSpacing:'2px', marginBottom:12 }}>Ahorro de tiempo</p>
             <h2 style={{ fontSize:'clamp(32px, 5vw, 52px)', fontWeight:800, letterSpacing:'-1.5px' }}>Menos papeleo, más docencia</h2>
           </div>
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(220px, 1fr))', gap:20 }}>
+          <div ref={savingsRef} style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(220px, 1fr))', gap:20 }}>
             {[
               { icon:<Clock size={28}/>,         time:'45 min', label:'Gestión de guardias'   },
               { icon:<LayoutGrid size={28}/>,    time:'30 min', label:'Reserva de aulas'      },
               { icon:<Users size={28}/>,         time:'1 hora', label:'Control de alumnos'    },
               { icon:<MessageSquare size={28}/>, time:'20 min', label:'Comunicación interna'  },
             ].map((s, i) => (
-              <div key={i} style={{ background:'rgba(52,211,153,.06)', border:'1px solid rgba(52,211,153,.15)', borderRadius:16, padding:'28px 24px', textAlign:'center' }}>
+              <div key={i} style={{ background:'rgba(52,211,153,.06)', border:'1px solid rgba(52,211,153,.15)', borderRadius:16, padding:'28px 24px', textAlign:'center', opacity: savingsVisible ? 1 : 0, transform: savingsVisible ? 'translateY(0)' : 'translateY(24px)', transition: `opacity .6s ${i*100}ms, transform .6s ${i*100}ms` }}>
                 <div style={{ color:'#34d399', display:'flex', justifyContent:'center', marginBottom:16 }}>{s.icon}</div>
                 <div style={{ fontSize:32, fontWeight:800, color:'#34d399', lineHeight:1 }}>{s.time}</div>
                 <div style={{ fontSize:14, fontWeight:600, color:'#fff', marginTop:8 }}>{s.label}</div>
@@ -154,6 +177,7 @@ export default function Landing() {
 
       {/* CTA Final */}
       <section style={{ padding:'100px 40px', textAlign:'center' }}>
+        <div ref={ctaRef} style={{ opacity: ctaVisible ? 1 : 0, transform: ctaVisible ? 'translateY(0)' : 'translateY(40px)', transition:'opacity .8s, transform .8s' }}>
         <h2 style={{ fontSize:'clamp(36px, 6vw, 64px)', fontWeight:900, letterSpacing:'-2px', lineHeight:1.05, marginBottom:24 }}>
           Puedes registrarte<br /><span style={{ color:'#34d399' }}>ahora mismo</span>
         </h2>
@@ -164,6 +188,7 @@ export default function Landing() {
           Registrar mi centro <ArrowRight size={20} />
         </Link>
         <p style={{ color:'rgba(255,255,255,.25)', fontSize:13, marginTop:20 }}>Sin tarjeta de crédito · Configuración en 2 minutos</p>
+        </div>
       </section>
 
       {/* Footer */}

@@ -41,7 +41,7 @@ function AppInner() {
   return (
     <>
       <Routes>
-        <Route path="/"              element={<Landing />} />
+        <Route path="/home" element={<Landing />} />
         <Route path="/login"           element={<PublicRoute><Login          toast={showToast} /></PublicRoute>} />
         <Route path="/registro"        element={<PublicRoute><Register       toast={showToast} /></PublicRoute>} />
         <Route path="/superadmin/login" element={<SuperadminLogin />} />
