@@ -19,6 +19,11 @@ import ConfirmarBaja    from './pages/ConfirmarBaja'
 import Landing         from './pages/Landing'
 import Toast          from './components/shared/Toast'
 
+function RootRedirect() {
+  const { user } = useAuth()
+  return user ? <Navigate to="/aulas" replace /> : <Navigate to="/home" replace />
+}
+
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth()
   if (loading) return (
@@ -41,7 +46,7 @@ function AppInner() {
   return (
     <>
       <Routes>
-        <Route path="/home" element={<Landing />} />
+        <Route path="/" element={<RootRedirect />} />
         <Route path="/login"           element={<PublicRoute><Login          toast={showToast} /></PublicRoute>} />
         <Route path="/registro"        element={<PublicRoute><Register       toast={showToast} /></PublicRoute>} />
         <Route path="/superadmin/login" element={<SuperadminLogin />} />
