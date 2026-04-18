@@ -92,7 +92,6 @@ export default function Landing() {
 
   return (
     <div style={{ background:'#080808', minHeight:'100vh', fontFamily:"'Outfit', sans-serif", color:'#fff', overflowX:'hidden' }}>
-      <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
 
       {/* ── Navbar ───────────────────────────────────────── */}
       <nav style={{
