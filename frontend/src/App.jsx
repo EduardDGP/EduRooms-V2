@@ -44,7 +44,6 @@ function AppInner() {
         <Route path="/"              element={<Landing />} />
         <Route path="/login"           element={<PublicRoute><Login          toast={showToast} /></PublicRoute>} />
         <Route path="/registro"        element={<PublicRoute><Register       toast={showToast} /></PublicRoute>} />
-        <Route path="/registro-centro" element={<PublicRoute><RegistroCentro toast={showToast} /></PublicRoute>} />
         <Route path="/superadmin/login" element={<SuperadminLogin />} />
         <Route path="/superadmin"       element={<Superadmin />} />
         <Route path="/verificar-centro" element={<VerificarCentro />} />
