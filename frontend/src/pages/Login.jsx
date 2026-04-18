@@ -64,7 +64,7 @@ export default function Login({ toast }) {
           {/* Mensaje cuenta pendiente */}
           {pending && (
             <div style={{ background:'#fffbeb', border:'1.5px solid #fcd34d', borderRadius:10, padding:'16px 18px', marginBottom:20 }}>
-              <div style={{ fontWeight:700, fontSize:14, color:'#92400e', marginBottom:4 }}>⏳ Acceso pendiente</div>
+              <div style={{ fontWeight:700, fontSize:14, color:'#92400e', marginBottom:4 }}>Acceso pendiente</div>
               <p style={{ fontSize:13, color:'#78350f', lineHeight:1.5 }}>
                 Tu cuenta o centro está pendiente de aprobación. Si eres director, el equipo de ExRooms revisará tu solicitud en breve.
               </p>

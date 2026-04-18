@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { getPerfil, editarPerfil, subirFoto } from '../api/client'
+import { Camera, Lock, Mail } from 'lucide-react'
 
 export default function Perfil({ toast }) {
   const { user, refreshUser } = useAuth()
@@ -35,7 +36,7 @@ export default function Perfil({ toast }) {
       await subirFoto(file)
       await refreshUser()
       await cargar()
-      toast('Foto actualizada 📷', 'success')
+      toast('Foto actualizada ', 'success')
     } catch (err) { toast(err.message, 'error') }
     finally { setSubiendo(false) }
   }
@@ -79,7 +80,7 @@ export default function Perfil({ toast }) {
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:24 }}>
         <h1 style={{ fontSize:26, fontWeight:800, letterSpacing:'-0.5px' }}>Mi Perfil</h1>
         {!editando && (
-          <button className="btn btn-outline btn-sm" onClick={() => setEditando(true)}>✏️ Editar datos</button>
+          <button className="btn btn-outline btn-sm" onClick={() => setEditando(true)}>Editar datos</button>
         )}
       </div>
 
@@ -90,16 +91,16 @@ export default function Perfil({ toast }) {
             {perfil.foto ? <img src={perfil.foto} alt="foto" /> : <span style={{ fontSize:36, fontWeight:800 }}>{initials}</span>}
             <div style={{ position:'absolute', inset:0, background:'rgba(0,0,0,.45)', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', opacity:0, transition:'opacity .2s', fontSize:20 }}
               onMouseEnter={e => e.currentTarget.style.opacity=1}
-              onMouseLeave={e => e.currentTarget.style.opacity=0}>📷</div>
+              onMouseLeave={e => e.currentTarget.style.opacity=0}></div>
           </div>
           <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" style={{ display:'none' }} onChange={handleFoto} />
           <div>
             <div style={{ fontSize:26, fontWeight:800, letterSpacing:'-0.5px' }}>{perfil.nombre} {perfil.apellidos}</div>
             <div style={{ display:'inline-flex', alignItems:'center', gap:5, background:'var(--primary-pale)', color:'var(--primary)', padding:'4px 12px', borderRadius:20, fontSize:12, fontWeight:700, marginTop:6 }}>
-              {perfil.rol === 'director' ? '🏫 Director/a' : perfil.rol === 'jefe_estudios' ? '👔 Jefe/a de Estudios' : '👨‍🏫 Profesor/a'}
+              {perfil.rol === 'director' ? 'Director/a' : perfil.rol === 'jefe_estudios' ? 'Jefe/a de Estudios' : 'Profesor/a'}
             </div>
             <div style={{ marginTop:10, fontSize:13, color:'var(--text3)' }}>
-              {subiendo ? '⏳ Subiendo foto...' : 'Haz clic en la foto para cambiarla'}
+              {subiendo ? 'Subiendo foto...' : 'Haz clic en la foto para cambiarla'}
             </div>
           </div>
         </div>
@@ -158,11 +159,11 @@ export default function Perfil({ toast }) {
       {/* Cambio de contraseña */}
       <div className="card">
         <div style={{ fontWeight:700, fontSize:15, marginBottom:12, paddingBottom:12, borderBottom:'1px solid var(--border)' }}>
-          🔒 Contraseña
+          Contraseña
         </div>
         {resetOk ? (
           <div style={{ background:'#d1fae5', border:'1px solid #6ee7b7', borderRadius:8, padding:'12px 16px', fontSize:14, color:'#065f46', fontWeight:600 }}>
-            📧 Te hemos enviado un email a <strong>{perfil.email}</strong> con el enlace para cambiar tu contraseña.
+            Te hemos enviado un email a <strong>{perfil.email}</strong> con el enlace para cambiar tu contraseña.
           </div>
         ) : (
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:16 }}>
@@ -170,7 +171,7 @@ export default function Perfil({ toast }) {
               Recibirás un email con un enlace seguro para establecer una nueva contraseña.
             </p>
             <button className="btn btn-outline btn-sm" onClick={handleSolicitarReset} disabled={enviando} style={{ flexShrink:0 }}>
-              {enviando ? '⏳ Enviando...' : '📧 Cambiar contraseña'}
+              {enviando ? 'Enviando...' : 'Cambiar contraseña'}
             </button>
           </div>
         )}

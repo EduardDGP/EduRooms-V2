@@ -55,7 +55,7 @@ export default function Register({ toast }) {
   if (success) return (
     <div style={{ minHeight:'100vh', background:'var(--black)', display:'flex', alignItems:'center', justifyContent:'center', padding:24 }}>
       <div style={{ background:'#fff', borderRadius:20, padding:'48px 40px', maxWidth:440, width:'100%', textAlign:'center', boxShadow:'0 8px 40px rgba(0,0,0,.3)' }}>
-        <div style={{ width:64, height:64, borderRadius:16, background:'var(--green-pale)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:32, margin:'0 auto 20px' }}>⏳</div>
+        <div style={{ width:64, height:64, borderRadius:16, background:'var(--green-pale)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:32, margin:'0 auto 20px' }}></div>
         <h2 style={{ fontSize:22, fontWeight:800, marginBottom:12 }}>Solicitud enviada</h2>
         <p style={{ color:'var(--text3)', fontSize:15, lineHeight:1.6, marginBottom:28 }}>
           {modo === 'centro'
@@ -87,8 +87,8 @@ export default function Register({ toast }) {
         {/* Selector de modo */}
         <div style={{ display:'flex', gap:4, marginBottom:24, background:'var(--bg)', borderRadius:10, padding:4, border:'1.5px solid var(--border)' }}>
           {[
-            { key:'profesor', label:'👨‍🏫 Soy profesor' },
-            { key:'centro',   label:'🏫 Registrar centro' },
+            { key:'profesor', label:'Soy profesor' },
+            { key:'centro',   label:'Registrar centro' },
           ].map(m => (
             <button key={m.key} onClick={() => { setModo(m.key); setError('') }} style={{
               flex:1, padding:'9px', borderRadius:7, border:'none', cursor:'pointer',
@@ -106,7 +106,7 @@ export default function Register({ toast }) {
         {modo === 'profesor' && (
           <form onSubmit={handleProfesor}>
             <div style={{ background:'var(--primary-pale)', border:'1.5px solid #6ee7b7', borderRadius:10, padding:'12px 16px', marginBottom:20, fontSize:13, color:'var(--primary-dark)' }}>
-              ℹ️ Tu cuenta necesitará aprobación del director antes de poder acceder.
+               Tu cuenta necesitará aprobación del director antes de poder acceder.
             </div>
             <div className="form-row">
               <div className="form-group">

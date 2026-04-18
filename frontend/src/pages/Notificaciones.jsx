@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
 import { getNotificaciones, leerTodasNotifs } from '../api/client'
 import { useNavigate } from 'react-router-dom'
+import { Bell, MessageSquare, Calendar, Shield } from 'lucide-react'
 
 const TIPO_CONFIG = {
-  reserva: { icon:'🏛️', color:'var(--primary)', bg:'var(--primary-pale)' },
-  mensaje: { icon:'💬', color:'#7c3aed',         bg:'#ede9fe' },
+  reserva: { icon: <Calendar size={18}/>, color:'var(--primary)', bg:'var(--primary-pale)' },
+  mensaje: { icon: <MessageSquare size={18}/>, color:'#7c3aed', bg:'#ede9fe' },
+  guardia: { icon: <Shield size={18}/>, color:'#f59e0b', bg:'#fffbeb' },
 }
 
 function agruparPorFecha(notifs) {
@@ -57,7 +59,7 @@ export default function Notificaciones({ toast }) {
         <p style={{ color:'var(--text3)' }}>Cargando...</p>
       ) : notifs.length === 0 ? (
         <div className="card" style={{ textAlign:'center', padding:'60px 24px', color:'var(--text3)' }}>
-          <div style={{ fontSize:48, opacity:.2, marginBottom:16 }}>🔔</div>
+          <div style={{ display:'flex', justifyContent:'center', marginBottom:16 }}><Bell size={48} style={{ opacity:.2, color:'var(--text3)' }} /></div>
           <p style={{ fontSize:16, fontWeight:600 }}>Sin notificaciones</p>
           <p style={{ fontSize:14, marginTop:6 }}>Aquí aparecerán las reservas y mensajes de tus compañeros.</p>
         </div>

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Building2, Clock, CheckCircle, FlaskConical, CreditCard, Users, BookOpen, Shield, MessageSquare, XCircle, Lock, Unlock, Trash2, RefreshCw, BarChart2, Activity } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
 const BASE = '/api'
@@ -10,11 +11,11 @@ const req = (method, path, body) =>
   }).then(async r => { const d = await r.json(); if (!r.ok) throw new Error(d.error || 'Error'); return d })
 
 const PLAN_CONFIG = {
-  pendiente: { bg:'#fffbeb', color:'#92400e', border:'#fcd34d', label:'⏳ Pendiente' },
-  pruebas:   { bg:'#ede9fe', color:'#5b21b6', border:'#c4b5fd', label:'🧪 Pruebas'   },
-  activo:    { bg:'#d1fae5', color:'#065f46', border:'#6ee7b7', label:'✅ Activo'    },
-  bloqueado: { bg:'#fee2e2', color:'#991b1b', border:'#fca5a5', label:'🔒 Bloqueado' },
-  rechazado: { bg:'#f1f5f9', color:'#475569', border:'#cbd5e1', label:'❌ Rechazado' },
+  pendiente: { bg:'#fffbeb', color:'#92400e', border:'#fcd34d', label:'Pendiente' },
+  pruebas:   { bg:'#ede9fe', color:'#5b21b6', border:'#c4b5fd', label:'Pruebas'   },
+  activo:    { bg:'#d1fae5', color:'#065f46', border:'#6ee7b7', label:'Activo'    },
+  bloqueado: { bg:'#fee2e2', color:'#991b1b', border:'#fca5a5', label:'Bloqueado' },
+  rechazado: { bg:'#f1f5f9', color:'#475569', border:'#cbd5e1', label:'Rechazado' },
 }
 
 function formatFecha(str) {
@@ -56,7 +57,7 @@ export default function Superadmin() {
   async function enviarEnlacePago(id) {
     try {
       const data = await req('POST', '/stripe/crear-sesion', { centro_id: id })
-      alert(`✅ ${data.mensaje}`)
+      alert(`${data.mensaje}`)
     } catch (err) { alert('Error: ' + err.message) }
   }
 
@@ -127,12 +128,12 @@ export default function Superadmin() {
         {/* Tabs */}
         <div style={{ display:'flex', gap:4, marginBottom:20, background:'#111', borderRadius:10, padding:4, border:'1px solid rgba(255,255,255,.08)', width:'fit-content', flexWrap:'wrap' }}>
           {[
-            { key:'pendientes', label:`⏳ Pendientes (${pendientes.length})` },
-            { key:'activos',    label:`✅ Activos (${activos.length})`       },
-            { key:'rechazados', label:`❌ Rechazados (${rechazados.length})` },
-            { key:'todos',      label:`📋 Todos (${centros.length})`         },
-            { key:'actividad',  label:`📊 Actividad`                         },
-            { key:'estadisticas',label:`🏆 Por centro`                       },
+            { key:'pendientes', label:`Pendientes (${pendientes.length})` },
+            { key:'activos',    label:`Activos (${activos.length})`       },
+            { key:'rechazados', label:`Rechazados (${rechazados.length})` },
+            { key:'todos',      label:`Todos (${centros.length})`         },
+            { key:'actividad',  label:`Actividad`                         },
+            { key:'estadisticas',label:`Por centro`                       },
           ].map(t => (
             <button key={t.key} onClick={() => setTab(t.key)} style={{
               padding:'8px 14px', borderRadius:7, border:'none', cursor:'pointer',
@@ -169,25 +170,26 @@ export default function Superadmin() {
                             {c.director_nombre && <span>👤 {c.director_nombre} {c.director_apellidos} — {c.director_email}</span>}
                             <span>👥 {c.total_profesores} profesores</span>
                             <span>📅 {fecha}</span>
-                            <span>{c.email_verificado ? '✅ Email verificado' : '⏳ Email sin verificar'}</span>
+                            <span>{c.email_verificado ? 'Email verificado' : 'Email sin verificar'}</span>
+                            {c.baja_solicitada ? <span style={{ color:'#fca5a5' }}>Baja confirmada</span> : null}
                           </div>
                         </div>
                         <div style={{ display:'flex', gap:8, flexShrink:0, flexWrap:'wrap', justifyContent:'flex-end' }}>
                           {c.aprobado === 0 && (<>
-                            <button onClick={() => aprobar(c.id,'pruebas')} style={{ padding:'7px 12px', borderRadius:8, border:'none', cursor:'pointer', fontFamily:'Outfit,sans-serif', fontSize:12, fontWeight:700, background:'#ede9fe', color:'#5b21b6' }}>🧪 Pruebas</button>
-                            <button onClick={() => enviarEnlacePago(c.id)} style={{ padding:'7px 12px', borderRadius:8, border:'none', cursor:'pointer', fontFamily:'Outfit,sans-serif', fontSize:12, fontWeight:700, background:'#d1fae5', color:'#065f46' }}>💳 Enviar enlace de pago</button>
-                            <button onClick={() => rechazar(c.id)} style={{ padding:'7px 12px', borderRadius:8, border:'none', cursor:'pointer', fontFamily:'Outfit,sans-serif', fontSize:12, fontWeight:700, background:'#fee2e2', color:'#991b1b' }}>❌ Rechazar</button>
+                            <button onClick={() => aprobar(c.id,'pruebas')} style={{ padding:'7px 12px', borderRadius:8, border:'none', cursor:'pointer', fontFamily:'Outfit,sans-serif', fontSize:12, fontWeight:700, background:'#ede9fe', color:'#5b21b6' }}>Pruebas</button>
+                            <button onClick={() => enviarEnlacePago(c.id)} style={{ padding:'7px 12px', borderRadius:8, border:'none', cursor:'pointer', fontFamily:'Outfit,sans-serif', fontSize:12, fontWeight:700, background:'#d1fae5', color:'#065f46' }}>Enviar enlace de pago</button>
+                            <button onClick={() => rechazar(c.id)} style={{ padding:'7px 12px', borderRadius:8, border:'none', cursor:'pointer', fontFamily:'Outfit,sans-serif', fontSize:12, fontWeight:700, background:'#fee2e2', color:'#991b1b' }}>Rechazar</button>
                           </>)}
                           {c.aprobado === 1 && c.plan !== 'bloqueado' && (
-                            <button onClick={() => bloquear(c.id)} style={{ padding:'7px 12px', borderRadius:8, border:'none', cursor:'pointer', fontFamily:'Outfit,sans-serif', fontSize:12, fontWeight:700, background:'#fef3c7', color:'#92400e' }}>🔒 Bloquear</button>
+                            <button onClick={() => bloquear(c.id)} style={{ padding:'7px 12px', borderRadius:8, border:'none', cursor:'pointer', fontFamily:'Outfit,sans-serif', fontSize:12, fontWeight:700, background:'#fef3c7', color:'#92400e' }}>Bloquear</button>
                           )}
                           {c.aprobado === 1 && c.plan === 'bloqueado' && (
-                            <button onClick={() => aprobar(c.id,'activo')} style={{ padding:'7px 12px', borderRadius:8, border:'none', cursor:'pointer', fontFamily:'Outfit,sans-serif', fontSize:12, fontWeight:700, background:'#d1fae5', color:'#065f46' }}>🔓 Desbloquear</button>
+                            <button onClick={() => aprobar(c.id,'activo')} style={{ padding:'7px 12px', borderRadius:8, border:'none', cursor:'pointer', fontFamily:'Outfit,sans-serif', fontSize:12, fontWeight:700, background:'#d1fae5', color:'#065f46' }}>Desbloquear</button>
                           )}
                           {c.aprobado === 2 && (
-                            <button onClick={() => aprobar(c.id,'pruebas')} style={{ padding:'7px 12px', borderRadius:8, border:'none', cursor:'pointer', fontFamily:'Outfit,sans-serif', fontSize:12, fontWeight:700, background:'#ede9fe', color:'#5b21b6' }}>🔄 Reactivar</button>
+                            <button onClick={() => aprobar(c.id,'pruebas')} style={{ padding:'7px 12px', borderRadius:8, border:'none', cursor:'pointer', fontFamily:'Outfit,sans-serif', fontSize:12, fontWeight:700, background:'#ede9fe', color:'#5b21b6' }}>Reactivar</button>
                           )}
-                          <button onClick={() => eliminar(c.id)} style={{ padding:'7px 10px', borderRadius:8, border:'1px solid rgba(255,255,255,.1)', cursor:'pointer', background:'transparent', color:'rgba(255,255,255,.4)', fontSize:13 }}>🗑️</button>
+                          <button onClick={() => eliminar(c.id)} style={{ padding:'7px 10px', borderRadius:8, border:'1px solid rgba(255,255,255,.1)', cursor:'pointer', background:'transparent', color:'rgba(255,255,255,.4)', fontSize:13 }}></button>
                         </div>
                       </div>
                     </div>
@@ -207,7 +209,7 @@ export default function Superadmin() {
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:20 }}>
                 {/* Últimas reservas */}
                 <div style={{ background:'#111', borderRadius:12, padding:20, border:'1px solid rgba(255,255,255,.08)' }}>
-                  <div style={{ fontWeight:700, fontSize:14, color:'#fff', marginBottom:14 }}>📅 Últimas reservas</div>
+                  <div style={{ fontWeight:700, fontSize:14, color:'#fff', marginBottom:14 }}>Últimas reservas</div>
                   {actividad.ultimas_reservas.length === 0 ? <p style={{ color:'rgba(255,255,255,.3)', fontSize:13 }}>Sin reservas</p> :
                   actividad.ultimas_reservas.map((r, i) => (
                     <div key={i} style={{ padding:'10px 0', borderBottom:'1px solid rgba(255,255,255,.06)', fontSize:12 }}>
@@ -219,7 +221,7 @@ export default function Superadmin() {
 
                 {/* Últimas guardias */}
                 <div style={{ background:'#111', borderRadius:12, padding:20, border:'1px solid rgba(255,255,255,.08)' }}>
-                  <div style={{ fontWeight:700, fontSize:14, color:'#fff', marginBottom:14 }}>🛡️ Últimas guardias</div>
+                  <div style={{ fontWeight:700, fontSize:14, color:'#fff', marginBottom:14 }}>Últimas guardias</div>
                   {actividad.ultimas_guardias.length === 0 ? <p style={{ color:'rgba(255,255,255,.3)', fontSize:13 }}>Sin guardias</p> :
                   actividad.ultimas_guardias.map((g, i) => (
                     <div key={i} style={{ padding:'10px 0', borderBottom:'1px solid rgba(255,255,255,.06)', fontSize:12 }}>
@@ -231,7 +233,7 @@ export default function Superadmin() {
 
                 {/* Últimos mensajes */}
                 <div style={{ background:'#111', borderRadius:12, padding:20, border:'1px solid rgba(255,255,255,.08)' }}>
-                  <div style={{ fontWeight:700, fontSize:14, color:'#fff', marginBottom:14 }}>💬 Últimos mensajes</div>
+                  <div style={{ fontWeight:700, fontSize:14, color:'#fff', marginBottom:14 }}>Últimos mensajes</div>
                   {actividad.ultimos_mensajes.length === 0 ? <p style={{ color:'rgba(255,255,255,.3)', fontSize:13 }}>Sin mensajes</p> :
                   actividad.ultimos_mensajes.map((m, i) => (
                     <div key={i} style={{ padding:'10px 0', borderBottom:'1px solid rgba(255,255,255,.06)', fontSize:12 }}>
@@ -243,7 +245,7 @@ export default function Superadmin() {
 
                 {/* Últimos directores registrados */}
                 <div style={{ background:'#111', borderRadius:12, padding:20, border:'1px solid rgba(255,255,255,.08)' }}>
-                  <div style={{ fontWeight:700, fontSize:14, color:'#fff', marginBottom:14 }}>🏫 Últimos directores registrados</div>
+                  <div style={{ fontWeight:700, fontSize:14, color:'#fff', marginBottom:14 }}>Últimos directores registrados</div>
                   {actividad.ultimos_accesos.length === 0 ? <p style={{ color:'rgba(255,255,255,.3)', fontSize:13 }}>Sin registros</p> :
                   actividad.ultimos_accesos.map((a, i) => (
                     <div key={i} style={{ padding:'10px 0', borderBottom:'1px solid rgba(255,255,255,.06)', fontSize:12 }}>

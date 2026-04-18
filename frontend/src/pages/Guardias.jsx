@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { getGuardias, crearGuardia, cubrirGuardia, cancelarCobertura, eliminarGuardia } from '../api/client'
 import { FRANJAS_RESERVABLES } from '../config/franjas'
+import { Clock, Calendar, School, MapPin, FileText, User, ClipboardList, Shield, AlertTriangle, CheckCircle, XCircle, Hand, Trash2, Plus } from 'lucide-react'
 import Modal from '../components/shared/Modal'
 
 const CURSOS = ['1º ESO','2º ESO','3º ESO','4º ESO','1º Bach','2º Bach','FP Básica','CFGM','CFGS']
@@ -13,7 +14,7 @@ function EstadoBadge({ guardia, userId }) {
     const esMiCobertura = guardia.cubierta_por === userId
     return (
       <span style={{ padding:'4px 10px', borderRadius:20, fontSize:11, fontWeight:700, background:'#d1fae5', color:'#065f46', border:'1px solid #6ee7b7' }}>
-        ✅ Cubierta{esMiCobertura ? ' (por ti)' : ` por ${guardia.cubierta_por_nombre} ${guardia.cubierta_por_apellidos}`}
+        Cubierta{esMiCobertura ? ' (por ti)' : ` por ${guardia.cubierta_por_nombre} ${guardia.cubierta_por_apellidos}`}
       </span>
     )
   }
@@ -21,7 +22,7 @@ function EstadoBadge({ guardia, userId }) {
   if (fechaPasada) {
     return <span style={{ padding:'4px 10px', borderRadius:20, fontSize:11, fontWeight:700, background:'#f1f5f9', color:'#64748b', border:'1px solid #e2e8f0' }}>Sin cubrir</span>
   }
-  return <span style={{ padding:'4px 10px', borderRadius:20, fontSize:11, fontWeight:700, background:'#fef3c7', color:'#92400e', border:'1px solid #fcd34d' }}>⏳ Pendiente</span>
+  return <span style={{ padding:'4px 10px', borderRadius:20, fontSize:11, fontWeight:700, background:'#fef3c7', color:'#92400e', border:'1px solid #fcd34d' }}>Pendiente</span>
 }
 
 export default function Guardias({ toast }) {
@@ -72,7 +73,7 @@ export default function Guardias({ toast }) {
   async function handleCubrir(id) {
     try {
       await cubrirGuardia(id)
-      toast('Te has apuntado para cubrir la guardia ✅', 'success')
+      toast('Te has apuntado para cubrir la guardia', 'success')
       cargar()
     } catch (err) { toast(err.message, 'error') }
   }
@@ -114,7 +115,7 @@ export default function Guardias({ toast }) {
           <h1 style={{ fontSize:26, fontWeight:800, letterSpacing:'-0.5px' }}>Guardias</h1>
           <p style={{ color:'var(--text3)', fontSize:14, marginTop:2 }}>
             {pendientes > 0
-              ? <span style={{ color:'var(--orange)', fontWeight:600 }}>⚠️ {pendientes} guardia{pendientes!==1?'s':''} pendiente{pendientes!==1?'s':''} de cubrir</span>
+              ? <span style={{ color:'var(--orange)', fontWeight:600, display:'inline-flex', alignItems:'center', gap:6 }}><AlertTriangle size={16}/> {pendientes} guardia{pendientes!==1?'s':''} pendiente{pendientes!==1?'s':''} de cubrir</span>
               : 'Gestión de ausencias del profesorado'}
           </p>
         </div>
@@ -124,10 +125,10 @@ export default function Guardias({ toast }) {
       {/* Filtros */}
       <div style={{ display:'flex', gap:8, marginBottom:24, background:'var(--white)', borderRadius:10, padding:5, border:'1.5px solid var(--border)', width:'fit-content' }}>
         {[
-          { key:'pendientes', label:'⏳ Pendientes' },
-          { key:'hoy',        label:'📅 Hoy'        },
-          { key:'mias',       label:'👤 Mis guardias'},
-          { key:'todas',      label:'📋 Todas'       },
+          { key:'pendientes', label:'Pendientes' },
+          { key:'hoy',        label:'Hoy'        },
+          { key:'mias',       label:'Mis guardias'},
+          { key:'todas',      label:'Todas'       },
         ].map(f => (
           <button key={f.key} onClick={() => setFiltro(f.key)} style={{
             padding:'8px 16px', borderRadius:7, border:'none', cursor:'pointer',
@@ -144,7 +145,7 @@ export default function Guardias({ toast }) {
         <p style={{ color:'var(--text3)' }}>Cargando...</p>
       ) : guardiasFiltradas.length === 0 ? (
         <div className="card" style={{ textAlign:'center', padding:'60px 24px', color:'var(--text3)' }}>
-          <div style={{ fontSize:48, opacity:.2, marginBottom:12 }}>🛡️</div>
+          <Shield size={48} style={{ opacity:.2, marginBottom:12 }} />
           <p style={{ fontSize:16, fontWeight:600 }}>No hay guardias en esta categoría</p>
         </div>
       ) : (
@@ -162,7 +163,7 @@ export default function Guardias({ toast }) {
                     {/* Cabecera */}
                     <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:12, flexWrap:'wrap' }}>
                       <div style={{ fontWeight:700, fontSize:15, color:'var(--text)' }}>
-                        👤 {g.prof_nombre} {g.prof_apellidos}
+                        {g.prof_nombre} {g.prof_apellidos}
                         {esMia && <span style={{ marginLeft:8, fontSize:11, background:'var(--primary-pale)', color:'var(--primary)', padding:'2px 8px', borderRadius:20, fontWeight:700 }}>Tu guardia</span>}
                       </div>
                       <EstadoBadge guardia={g} userId={user.id} />
@@ -171,10 +172,10 @@ export default function Guardias({ toast }) {
                     {/* Detalles en grid */}
                     <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(160px,1fr))', gap:10, marginBottom: g.instrucciones ? 14 : 0 }}>
                       {[
-                        { icon:'📅', label:'Fecha',  value: fechaLabel },
-                        { icon:'⏰', label:'Franja', value: `${g.franja_label} (${g.hora_inicio}–${g.hora_fin})` },
-                        { icon:'🏫', label:'Grupo',  value: `${g.curso} ${g.grupo}` },
-                        { icon:'📍', label:'Aula',   value: g.aula },
+                        { icon: <Calendar size={12}/>, label:'Fecha',  value: fechaLabel },
+                        { icon: <Clock size={12}/>, label:'Franja', value: `${g.franja_label} (${g.hora_inicio}–${g.hora_fin})` },
+                        { icon: <School size={12}/>, label:'Grupo',  value: `${g.curso} ${g.grupo}` },
+                        { icon: <MapPin size={12}/>, label:'Aula',   value: g.aula },
                       ].map(d => (
                         <div key={d.label} style={{ background:'var(--surface)', borderRadius:8, padding:'8px 12px', border:'1px solid var(--border)' }}>
                           <div style={{ fontSize:11, fontWeight:700, color:'var(--text3)', textTransform:'uppercase', letterSpacing:'.5px', marginBottom:3 }}>{d.icon} {d.label}</div>
@@ -186,7 +187,7 @@ export default function Guardias({ toast }) {
                     {/* Instrucciones */}
                     {g.instrucciones && (
                       <div style={{ background:'#fffbeb', border:'1px solid #fcd34d', borderRadius:8, padding:'10px 14px', fontSize:13, color:'#78350f' }}>
-                        <span style={{ fontWeight:700 }}>📝 Instrucciones: </span>{g.instrucciones}
+                        <span style={{ fontWeight:700, display:'inline-flex', alignItems:'center', gap:4 }}><FileText size={13}/> Instrucciones: </span>{g.instrucciones}
                       </div>
                     )}
                   </div>
@@ -195,7 +196,7 @@ export default function Guardias({ toast }) {
                   <div style={{ display:'flex', flexDirection:'column', gap:8, flexShrink:0 }}>
                     {puedeCubrir && (
                       <button className="btn btn-green btn-sm" onClick={() => handleCubrir(g.id)}>
-                        🙋 Cubrir guardia
+                        Cubrir guardia
                       </button>
                     )}
                     {esMiCobertura && (
@@ -205,7 +206,7 @@ export default function Guardias({ toast }) {
                     )}
                     {esMia && (
                       <button className="btn btn-outline btn-sm" onClick={() => handleEliminar(g.id)} style={{ color:'var(--red)', borderColor:'#fecaca' }}>
-                        🗑️ Eliminar
+                        Eliminar
                       </button>
                     )}
                   </div>
@@ -217,7 +218,7 @@ export default function Guardias({ toast }) {
       )}
 
       {/* Modal crear guardia */}
-      <Modal open={modal} onClose={() => setModal(false)} title="🛡️ Registrar ausencia">
+      <Modal open={modal} onClose={() => setModal(false)} title="Registrar ausencia">
         <form onSubmit={handleCrear}>
           <div className="form-row">
             <div className="form-group">

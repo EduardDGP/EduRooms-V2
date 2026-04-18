@@ -56,7 +56,7 @@ export default function Aulas({ toast }) {
     e.preventDefault()
     try {
       await crearAula({ nombre:formAula.nombre, tipo:formAula.tipo, capacidad:Number(formAula.capacidad) })
-      toast('Aula añadida ✅', 'success')
+      toast('Aula añadida ', 'success')
       setModalAddAula(false)
       setFormAula({ nombre:'', tipo:'Informática', capacidad:'30' })
       cargar()
@@ -111,7 +111,7 @@ export default function Aulas({ toast }) {
           <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(270px,1fr))', gap:18 }}>
             {aulasFiltradas.map(aula => {
               const res   = aula.reserva
-              const icon  = EMOJIS[aula.tipo]  || '🏫'
+              const icon  = EMOJIS[aula.tipo]  || ''
               const color = COLORES[aula.tipo] || '#f1f5f9'
               const misHoy = reservas.filter(r => r.aula_id === aula.id && r.fecha === TODAY)
 
@@ -151,7 +151,7 @@ export default function Aulas({ toast }) {
                         onClick={e => { e.stopPropagation(); handleBorrarAula(aula.id) }}
                         style={{ padding:'4px 8px', fontSize:13 }}
                         title="Eliminar aula"
-                      >🗑️</button>
+                      ></button>
                     </div>
                   </div>
                 </div>

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../hooks/useAuth'
+import { Clock, Users, XCircle, Briefcase, Building2, CheckCircle, UserCheck, UserX, Trash2, ChevronDown, Upload, AlertTriangle } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
 const BASE = '/api'
@@ -19,6 +20,7 @@ export default function Admin({ toast }) {
   const [centro,       setCentro]       = useState(null)
   const [loading,      setLoading]      = useState(true)
   const [subiendoLogo, setSubiendoLogo] = useState(false)
+  const [solicitandoBaja, setSolicitandoBaja] = useState(false)
 
   useEffect(() => {
     if (!user || !['director','jefe_estudios','superadmin'].includes(user.rol)) { navigate('/aulas'); return }
@@ -65,6 +67,17 @@ export default function Admin({ toast }) {
     if (!confirm(`¿Quitar el rol de Jefe de Estudios a ${nombre}?`)) return
     try { await req('PUT', `/admin/degradar-profesor/${id}`); toast(`${nombre} vuelve a ser profesor/a`, 'info'); cargar() }
     catch (err) { toast(err.message, 'error') }
+  }
+
+  async function handleSolicitarBaja() {
+    if (!confirm('¿Seguro que quieres solicitar la baja? Recibirás un email para confirmarla.')) return
+    setSolicitandoBaja(true)
+    try {
+      const data = await req('POST', '/admin/solicitar-baja')
+      toast(data.mensaje, 'success')
+      cargar()
+    } catch (err) { toast(err.message, 'error') }
+    finally { setSolicitandoBaja(false) }
   }
 
   async function handleLogoUpload(e) {
@@ -122,11 +135,11 @@ export default function Admin({ toast }) {
       {/* Tabs */}
       <div style={{ display:'flex', gap:4, marginBottom:20, background:'var(--white)', borderRadius:10, padding:5, border:'1.5px solid var(--border)', width:'fit-content' }}>
         {[
-          { key:'pendientes', label:`⏳ Pendientes (${pendientes.length})` },
-          { key:'aprobados',  label:`✅ Aprobados (${aprobados.length})`   },
-          { key:'rechazados', label:`❌ Rechazados (${rechazados.length})` },
-          { key:'jefes',      label:`👔 Jefes Est. (${jefes.length})`      },
-          { key:'centro',     label:`🏫 Mi Centro`                         },
+          { key:'pendientes', label:`Pendientes (${pendientes.length})` },
+          { key:'aprobados',  label:`Aprobados (${aprobados.length})`   },
+          { key:'rechazados', label:`Rechazados (${rechazados.length})` },
+          { key:'jefes',      label:`Jefes Est. (${jefes.length})`      },
+          { key:'centro',     label:`Mi Centro`                         },
         ].map(t => (
           <button key={t.key} onClick={() => setTab(t.key)} style={{
             padding:'8px 16px', borderRadius:7, border:'none', cursor:'pointer',
@@ -156,8 +169,8 @@ export default function Admin({ toast }) {
                   <div style={{ fontSize:13, color:'var(--text3)' }}>✉️ {p.email} · 📚 {p.asignatura}</div>
                 </div>
                 <div style={{ display:'flex', gap:8 }}>
-                  <button className="btn btn-green btn-sm" onClick={() => aprobar(p.id, `${p.nombre} ${p.apellidos}`)}>✅ Aprobar</button>
-                  <button className="btn btn-danger btn-sm" onClick={() => rechazar(p.id, `${p.nombre} ${p.apellidos}`)}>❌ Rechazar</button>
+                  <button className="btn btn-green btn-sm" onClick={() => aprobar(p.id, `${p.nombre} ${p.apellidos}`)}>Aprobar</button>
+                  <button className="btn btn-danger btn-sm" onClick={() => rechazar(p.id, `${p.nombre} ${p.apellidos}`)}>Rechazar</button>
                 </div>
               </div>
             ))}
@@ -182,13 +195,13 @@ export default function Admin({ toast }) {
                 <div style={{ fontWeight:700, fontSize:15 }}>{p.nombre} {p.apellidos}</div>
                 <div style={{ fontSize:12, color:'var(--text3)' }}>✉️ {p.email} · 📚 {p.asignatura}</div>
               </div>
-              <span style={{ padding:'4px 11px', borderRadius:20, fontSize:11, fontWeight:700, background:'var(--green-pale)', color:'var(--primary-dark)', border:'1px solid #6ee7b7' }}>✅ Activo</span>
+              <span style={{ padding:'4px 11px', borderRadius:20, fontSize:11, fontWeight:700, background:'var(--green-pale)', color:'var(--primary-dark)', border:'1px solid #6ee7b7' }}>Activo</span>
               <div style={{ display:'flex', gap:6 }}>
                 {user?.rol === 'director' && (
-                  <button className="btn btn-outline btn-sm" onClick={() => promoverJefe(p.id, `${p.nombre} ${p.apellidos}`)} style={{ color:'#7c3aed', borderColor:'#c4b5fd' }} title="Hacer Jefe de Estudios">👔 Jefe</button>
+                  <button className="btn btn-outline btn-sm" onClick={() => promoverJefe(p.id, `${p.nombre} ${p.apellidos}`)} style={{ color:'#7c3aed', borderColor:'#c4b5fd' }} title="Hacer Jefe de Estudios">Jefe</button>
                 )}
                 <button className="btn btn-danger btn-sm" onClick={() => rechazar(p.id, p.nombre)}>Suspender</button>
-                <button className="btn btn-outline btn-sm" onClick={() => eliminar(p.id, p.nombre)} style={{ color:'var(--red)', borderColor:'#fecaca' }}>🗑️</button>
+                <button className="btn btn-outline btn-sm" onClick={() => eliminar(p.id, p.nombre)} style={{ color:'var(--red)', borderColor:'#fecaca' }}></button>
               </div>
             </div>
           ))}
@@ -212,10 +225,10 @@ export default function Admin({ toast }) {
                 <div style={{ fontWeight:700, fontSize:15 }}>{p.nombre} {p.apellidos}</div>
                 <div style={{ fontSize:12, color:'var(--text3)' }}>✉️ {p.email}</div>
               </div>
-              <span style={{ padding:'4px 11px', borderRadius:20, fontSize:11, fontWeight:700, background:'var(--red-pale)', color:'var(--red)', border:'1px solid #fecaca' }}>❌ Rechazado</span>
+              <span style={{ padding:'4px 11px', borderRadius:20, fontSize:11, fontWeight:700, background:'var(--red-pale)', color:'var(--red)', border:'1px solid #fecaca' }}>Rechazado</span>
               <div style={{ display:'flex', gap:6 }}>
                 <button className="btn btn-green btn-sm" onClick={() => aprobar(p.id, p.nombre)}>Aprobar</button>
-                <button className="btn btn-outline btn-sm" onClick={() => eliminar(p.id, p.nombre)} style={{ color:'var(--red)', borderColor:'#fecaca' }}>🗑️</button>
+                <button className="btn btn-outline btn-sm" onClick={() => eliminar(p.id, p.nombre)} style={{ color:'var(--red)', borderColor:'#fecaca' }}></button>
               </div>
             </div>
           ))}
@@ -229,7 +242,7 @@ export default function Admin({ toast }) {
             <div className="card" style={{ textAlign:'center', padding:'48px 24px', color:'var(--text3)' }}>
               <div style={{ fontSize:48, opacity:.3, marginBottom:12 }}>👔</div>
               <p style={{ fontSize:16, fontWeight:600 }}>No hay jefes de estudios</p>
-              <p style={{ fontSize:14, marginTop:8, color:'var(--text3)' }}>Aprueba una cuenta de profesor y usa el botón 👔 Jefe para promoverlo.</p>
+              <p style={{ fontSize:14, marginTop:8, color:'var(--text3)' }}>Aprueba una cuenta de profesor y usa el botón Jefe para promoverlo.</p>
             </div>
           ) : (
             <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
@@ -242,11 +255,11 @@ export default function Admin({ toast }) {
                     <div style={{ fontWeight:700, fontSize:15 }}>{p.nombre} {p.apellidos}</div>
                     <div style={{ fontSize:12, color:'var(--text3)' }}>✉️ {p.email} · 📚 {p.asignatura}</div>
                   </div>
-                  <span style={{ padding:'4px 11px', borderRadius:20, fontSize:11, fontWeight:700, background:'#ede9fe', color:'#7c3aed', border:'1px solid #c4b5fd' }}>👔 Jefe de Estudios</span>
+                  <span style={{ padding:'4px 11px', borderRadius:20, fontSize:11, fontWeight:700, background:'#ede9fe', color:'#7c3aed', border:'1px solid #c4b5fd' }}>Jefe de Estudios</span>
                   {user?.rol === 'director' && (
                     <div style={{ display:'flex', gap:6 }}>
-                      <button className="btn btn-outline btn-sm" onClick={() => degradarProfesor(p.id, p.nombre)}>↓ Profesor</button>
-                      <button className="btn btn-outline btn-sm" onClick={() => eliminar(p.id, p.nombre)} style={{ color:'var(--red)', borderColor:'#fecaca' }}>🗑️</button>
+                      <button className="btn btn-outline btn-sm" onClick={() => degradarProfesor(p.id, p.nombre)}>Quitar rol</button>
+                      <button className="btn btn-outline btn-sm" onClick={() => eliminar(p.id, p.nombre)} style={{ color:'var(--red)', borderColor:'#fecaca' }}></button>
                     </div>
                   )}
                 </div>
@@ -260,7 +273,7 @@ export default function Admin({ toast }) {
       {tab === 'centro' && (
         <div className="card" style={{ maxWidth:560 }}>
           <div style={{ fontWeight:700, fontSize:16, marginBottom:20, paddingBottom:12, borderBottom:'1px solid var(--border)' }}>
-            🏫 Información del centro
+            Información del centro
           </div>
 
           {centro ? (
@@ -278,7 +291,7 @@ export default function Admin({ toast }) {
                   <p style={{ fontSize:13, color:'var(--text3)', marginBottom:10 }}>Aparecerá en el sidebar para todos los profesores del centro.</p>
                   <label style={{ display:'inline-block', cursor:'pointer' }}>
                     <span className="btn btn-outline btn-sm" style={{ display:'inline-flex', alignItems:'center', gap:6 }}>
-                      {subiendoLogo ? '⏳ Subiendo...' : '📁 Cambiar logo'}
+                      {subiendoLogo ? 'Subiendo...' : 'Cambiar logo'}
                     </span>
                     <input type="file" accept="image/jpeg,image/png,image/webp,image/svg+xml" style={{ display:'none' }} onChange={handleLogoUpload} disabled={subiendoLogo} />
                   </label>
@@ -299,6 +312,27 @@ export default function Admin({ toast }) {
                   </div>
                 ))}
               </div>
+
+              {/* Solicitar baja */}
+              {user?.rol === 'director' && (
+                <div style={{ marginTop:24, paddingTop:20, borderTop:'1px solid var(--border)' }}>
+                  <div style={{ fontSize:12, fontWeight:700, color:'var(--red)', textTransform:'uppercase', letterSpacing:'.5px', marginBottom:8 }}>Zona de peligro</div>
+                  {centro.baja_solicitada ? (
+                    <div style={{ background:'#fee2e2', border:'1px solid #fca5a5', borderRadius:8, padding:'12px 16px', fontSize:13, color:'#991b1b' }}>
+                      Tu baja ha sido confirmada. Tu centro seguirá activo hasta el final del período actual.
+                    </div>
+                  ) : (
+                    <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:16 }}>
+                      <p style={{ fontSize:13, color:'var(--text3)' }}>
+                        Al darte de baja recibirás un email de confirmación. Tu centro seguirá activo hasta el final del período pagado.
+                      </p>
+                      <button className="btn btn-danger btn-sm" style={{ flexShrink:0 }} onClick={handleSolicitarBaja} disabled={solicitandoBaja}>
+                        {solicitandoBaja ? '⏳ Enviando...' : 'Solicitar baja'}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </>
           ) : (
             <p style={{ color:'var(--text3)' }}>Cargando info del centro...</p>

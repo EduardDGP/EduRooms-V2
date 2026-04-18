@@ -74,7 +74,7 @@ export default function Social({ toast }) {
     if (!addId) return toast('Selecciona un profesor', 'error')
     try {
       await addContacto(Number(addId))
-      toast('Contacto añadido ✅', 'success')
+      toast('Contacto añadido ', 'success')
       setAddId('')
       cargar()
     } catch (err) { toast(err.message, 'error') }
@@ -169,7 +169,7 @@ export default function Social({ toast }) {
         <div className="card" style={{ padding:0, display:'flex', flexDirection:'column', overflow:'hidden' }}>
           {!activeChat ? (
             <div style={{ flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:12,color:'var(--text3)' }}>
-              <span style={{ fontSize:52,opacity:.3 }}>💬</span>
+              <span style={{ fontSize:52,opacity:.3 }}></span>
               <p style={{ fontSize:15,fontWeight:500 }}>Selecciona una conversación</p>
             </div>
           ) : (
