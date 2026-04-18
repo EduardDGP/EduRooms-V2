@@ -16,6 +16,8 @@ import Superadmin      from './pages/Superadmin'
 import SuperadminLogin  from './pages/SuperadminLogin'
 import VerificarCentro  from './pages/VerificarCentro'
 import ResetPassword    from './pages/ResetPassword'
+import ConfirmarBaja    from './pages/ConfirmarBaja'
+import Landing         from './pages/Landing'
 import Toast          from './components/shared/Toast'
 
 function PrivateRoute({ children }) {
@@ -40,6 +42,7 @@ function AppInner() {
   return (
     <>
       <Routes>
+        <Route path="/"              element={<Landing />} />
         <Route path="/login"           element={<PublicRoute><Login          toast={showToast} /></PublicRoute>} />
         <Route path="/registro"        element={<PublicRoute><Register       toast={showToast} /></PublicRoute>} />
         <Route path="/registro-centro" element={<PublicRoute><RegistroCentro toast={showToast} /></PublicRoute>} />
@@ -47,6 +50,7 @@ function AppInner() {
         <Route path="/superadmin"       element={<Superadmin />} />
         <Route path="/verificar-centro" element={<VerificarCentro />} />
         <Route path="/reset-password"   element={<ResetPassword />} />
+        <Route path="/confirmar-baja"   element={<ConfirmarBaja />} />
         <Route path="/" element={<PrivateRoute><Layout toast={showToast} /></PrivateRoute>}>
           <Route index element={<Navigate to="/aulas" replace />} />
           <Route path="aulas"          element={<Aulas          toast={showToast} />} />
