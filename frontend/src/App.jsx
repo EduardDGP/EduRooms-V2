@@ -21,7 +21,7 @@ import Toast          from './components/shared/Toast'
 
 function RootRedirect() {
   const { user } = useAuth()
-  return user ? <Navigate to="/app/aulas" replace /> : <Navigate to="/home" replace />
+  return user ? <Navigate to="/aulas" replace /> : <Navigate to="/bienvenida" replace />
 }
 
 function PrivateRoute({ children }) {
@@ -38,7 +38,7 @@ function PrivateRoute({ children }) {
 function PublicRoute({ children }) {
   const { user, loading } = useAuth()
   if (loading) return null
-  return user ? <Navigate to="/app/aulas" replace /> : children
+  return user ? <Navigate to="/aulas" replace /> : children
 }
 
 function AppInner() {
@@ -47,7 +47,7 @@ function AppInner() {
     <>
       <Routes>
         <Route path="/"              element={<RootRedirect />} />
-        <Route path="/home"          element={<Landing />} />
+        <Route path="/bienvenida"    element={<Landing />} />
         <Route path="/login"         element={<PublicRoute><Login toast={showToast} /></PublicRoute>} />
         <Route path="/registro"      element={<PublicRoute><Register toast={showToast} /></PublicRoute>} />
         <Route path="/superadmin/login" element={<SuperadminLogin />} />
@@ -55,7 +55,7 @@ function AppInner() {
         <Route path="/verificar-centro" element={<VerificarCentro />} />
         <Route path="/reset-password"   element={<ResetPassword />} />
         <Route path="/confirmar-baja"   element={<ConfirmarBaja />} />
-        <Route path="/app" element={<PrivateRoute><Layout toast={showToast} /></PrivateRoute>}>
+        <Route path="/" element={<PrivateRoute><Layout toast={showToast} /></PrivateRoute>}>
           <Route index element={<Navigate to="/app/aulas" replace />} />
           <Route path="aulas"          element={<Aulas          toast={showToast} />} />
           <Route path="social"         element={<Social         toast={showToast} />} />
