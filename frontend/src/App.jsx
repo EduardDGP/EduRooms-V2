@@ -46,25 +46,24 @@ function AppInner() {
   return (
     <>
       <Routes>
-        <Route path="/"              element={<RootRedirect />} />
-        <Route path="/bienvenida"    element={<Landing />} />
-        <Route path="/login"         element={<PublicRoute><Login toast={showToast} /></PublicRoute>} />
-        <Route path="/registro"      element={<PublicRoute><Register toast={showToast} /></PublicRoute>} />
-        <Route path="/superadmin/login" element={<SuperadminLogin />} />
-        <Route path="/superadmin"    element={<Superadmin />} />
-        <Route path="/verificar-centro" element={<VerificarCentro />} />
-        <Route path="/reset-password"   element={<ResetPassword />} />
-        <Route path="/confirmar-baja"   element={<ConfirmarBaja />} />
-        <Route path="/" element={<PrivateRoute><Layout toast={showToast} /></PrivateRoute>}>
-          <Route index element={<Navigate to="/app/aulas" replace />} />
-          <Route path="aulas"          element={<Aulas          toast={showToast} />} />
-          <Route path="social"         element={<Social         toast={showToast} />} />
-          <Route path="perfil"         element={<Perfil         toast={showToast} />} />
-          <Route path="admin"          element={<Admin          toast={showToast} />} />
-          <Route path="alumnos"        element={<Alumnos        toast={showToast} />} />
-          <Route path="notificaciones" element={<Notificaciones toast={showToast} />} />
-          <Route path="guardias"       element={<Guardias       toast={showToast} />} />
-        </Route>
+      <Route path="/"              element={<RootRedirect />} />
+      <Route path="/bienvenida"    element={<Landing />} />
+      <Route path="/login"         element={<PublicRoute><Login toast={showToast} /></PublicRoute>} />
+      <Route path="/registro"      element={<PublicRoute><Register toast={showToast} /></PublicRoute>} />
+      <Route path="/superadmin/login" element={<SuperadminLogin />} />
+      <Route path="/superadmin"    element={<Superadmin />} />
+      <Route path="/verificar-centro" element={<VerificarCentro />} />
+      <Route path="/reset-password"   element={<ResetPassword />} />
+      <Route path="/confirmar-baja"   element={<ConfirmarBaja />} />
+      <Route element={<PrivateRoute><Layout toast={showToast} /></PrivateRoute>}>
+        <Route path="aulas"          element={<Aulas          toast={showToast} />} />
+        <Route path="social"         element={<Social         toast={showToast} />} />
+        <Route path="perfil"         element={<Perfil         toast={showToast} />} />
+        <Route path="admin"          element={<Admin          toast={showToast} />} />
+        <Route path="alumnos"        element={<Alumnos        toast={showToast} />} />
+        <Route path="notificaciones" element={<Notificaciones toast={showToast} />} />
+        <Route path="guardias"       element={<Guardias       toast={showToast} />} />
+      </Route>
       </Routes>
       <Toast toasts={toasts} />
     </>
