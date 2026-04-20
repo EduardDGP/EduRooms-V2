@@ -77,7 +77,7 @@ router.get('/centros', (req, res) => {
 
 // ── POST /api/auth/centro ─────────────────────────────────
 // El director registra su centro y su cuenta a la vez
-router.post('/centro', (req, res) => {
+router.post('/centro', async (req, res) => {
   const { centro_nombre, centro_codigo, centro_ciudad, centro_provincia,
           nombre, apellidos, email, password } = req.body
 
