@@ -1,8 +1,9 @@
-import { Outlet, NavLink, useNavigate } from 'react-router-dom'
+import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
+import { useIsMobile } from '../../hooks/useIsMobile'
 import { useEffect, useState } from 'react'
 import { getNoLeidas } from '../../api/client'
-import { LayoutGrid, Users, Shield, MessageSquare, Bell, User, Settings, LogOut } from 'lucide-react'
+import { LayoutGrid, Users, Shield, MessageSquare, Bell, User, Settings, LogOut, Menu, X } from 'lucide-react'
 
 const Icons = {
   aulas:   <LayoutGrid size={18} />,
@@ -18,16 +19,27 @@ const Icons = {
 export default function Layout({ toast }) {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
-  const isDirector = user?.rol === 'director'
-  const isAdmin    = ['director','jefe_estudios','superadmin'].includes(user?.rol)
-  const [noLeidas, setNoLeidas] = useState(0)
+  const location = useLocation()
+  const isMobile = useIsMobile()
+  const isAdmin  = ['director','jefe_estudios','superadmin'].includes(user?.rol)
+  const [noLeidas, setNoLeidas]       = useState(0)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
 
   useEffect(() => {
     cargarNoLeidas()
-    // Actualizar cada 30 segundos
     const interval = setInterval(cargarNoLeidas, 30000)
     return () => clearInterval(interval)
   }, [])
+
+  // Cerrar drawer al cambiar de ruta
+  useEffect(() => { setSidebarOpen(false) }, [location.pathname])
+
+  // Bloquear scroll del body cuando el drawer está abierto
+  useEffect(() => {
+    if (isMobile && sidebarOpen) document.body.style.overflow = 'hidden'
+    else document.body.style.overflow = ''
+    return () => { document.body.style.overflow = '' }
+  }, [isMobile, sidebarOpen])
 
   async function cargarNoLeidas() {
     try {
@@ -37,6 +49,7 @@ export default function Layout({ toast }) {
   }
 
   function handleLogout() { logout(); navigate('/login') }
+  const closeSidebar = () => setSidebarOpen(false)
 
   const initials = user ? user.nombre[0] + user.apellidos[0] : '?'
   const fotoSrc  = user?.foto ? user.foto : null
@@ -51,15 +64,44 @@ export default function Layout({ toast }) {
   ]
   if (isAdmin) navLinks.push({ to:'/admin', icon: Icons.admin, label:'Admin' })
 
+  // Sidebar: drawer fijo en móvil / columna estática en desktop
+  const sidebarStyle = isMobile
+    ? {
+        position:'fixed', top:0, left:0, height:'100vh', width:260, zIndex:1000,
+        transform: sidebarOpen ? 'translateX(0)' : 'translateX(-100%)',
+        transition:'transform .25s ease',
+        background:'#0a0a0a',
+        display:'flex', flexDirection:'column',
+        borderRight:'1px solid rgba(255,255,255,.06)',
+        boxShadow: sidebarOpen ? '6px 0 24px rgba(0,0,0,.4)' : 'none',
+      }
+    : {
+        width:220, flexShrink:0, background:'#0a0a0a',
+        display:'flex', flexDirection:'column',
+        borderRight:'1px solid rgba(255,255,255,.06)',
+        overflow:'hidden',
+      }
+
   return (
     <div style={{ display:'flex', height:'100vh', background:'var(--bg)', overflow:'hidden' }}>
 
-      {/* ── Sidebar ─────────────────────────────────────── */}
-      <aside style={{ width:220, flexShrink:0, background:'#0a0a0a', display:'flex', flexDirection:'column', borderRight:'1px solid rgba(255,255,255,.06)', overflow:'hidden' }}>
+      {/* ── Backdrop (solo móvil con drawer abierto) ──── */}
+      {isMobile && sidebarOpen && (
+        <div
+          onClick={closeSidebar}
+          style={{
+            position:'fixed', inset:0, background:'rgba(0,0,0,.5)',
+            zIndex:999, backdropFilter:'blur(2px)',
+          }}
+        />
+      )}
 
-        {/* Logo */}
-        <div style={{ padding:'28px 20px 24px', borderBottom:'1px solid rgba(255,255,255,.06)' }}>
-          <NavLink to="/aulas" style={{ textDecoration:'none', display:'flex', alignItems:'center', gap:10 }}>
+      {/* ── Sidebar ─────────────────────────────────────── */}
+      <aside style={sidebarStyle}>
+
+        {/* Logo + botón cerrar en móvil */}
+        <div style={{ padding:'28px 20px 24px', borderBottom:'1px solid rgba(255,255,255,.06)', display:'flex', alignItems:'center', justifyContent:'space-between', gap:10 }}>
+          <NavLink to="/aulas" onClick={closeSidebar} style={{ textDecoration:'none', display:'flex', alignItems:'center', gap:10, minWidth:0, flex:1 }}>
             {user?.centro_logo ? (
               <img src={user.centro_logo} alt="Logo centro" style={{ width:32, height:32, objectFit:'contain', flexShrink:0, background:'#fff', borderRadius:6, padding:2 }} />
             ) : (
@@ -67,20 +109,30 @@ export default function Layout({ toast }) {
                 <span style={{ fontSize:16, fontWeight:900, color:'#fff', fontFamily:'Georgia, serif', letterSpacing:'-1px' }}>E</span>
               </div>
             )}
-            <span style={{ fontSize:17, fontWeight:800, color:'#fff', letterSpacing:'-0.5px', fontFamily:'Outfit,sans-serif' }}>
+            <span style={{ fontSize:17, fontWeight:800, color:'#fff', letterSpacing:'-0.5px', fontFamily:'Outfit,sans-serif', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
               Ex<span style={{ color:'var(--accent)' }}>Rooms</span>
             </span>
           </NavLink>
+
+          {isMobile && (
+            <button onClick={closeSidebar} aria-label="Cerrar menú"
+              style={{ width:32, height:32, border:'none', background:'transparent', color:'rgba(255,255,255,.5)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', borderRadius:6, flexShrink:0 }}>
+              <X size={18} />
+            </button>
+          )}
         </div>
 
         {/* Nav */}
-        <nav style={{ flex:1, padding:'16px 12px', display:'flex', flexDirection:'column', gap:2 }}>
+        <nav style={{ flex:1, padding:'16px 12px', display:'flex', flexDirection:'column', gap:2, overflowY:'auto' }}>
           <div style={{ fontSize:10, fontWeight:700, color:'rgba(255,255,255,.25)', letterSpacing:'1.2px', textTransform:'uppercase', padding:'8px 10px 6px', marginBottom:4 }}>
             Navegación
           </div>
           {navLinks.map(({ to, icon, label, badge }) => (
             <NavLink key={to} to={to}
-              onClick={() => { if (to === '/notificaciones') setNoLeidas(0) }}
+              onClick={() => {
+                if (to === '/notificaciones') setNoLeidas(0)
+                closeSidebar()
+              }}
               style={({ isActive }) => ({
                 display:'flex', alignItems:'center', gap:12,
                 padding:'10px 12px', borderRadius:8, textDecoration:'none',
@@ -103,8 +155,8 @@ export default function Layout({ toast }) {
         </nav>
 
         {/* Footer */}
-        <div style={{ padding:'16px 12px', borderTop:'1px solid rgba(255,255,255,.06)' }}>
-          <NavLink to="/perfil" style={{ textDecoration:'none', display:'flex', alignItems:'center', gap:10, padding:'10px 10px', borderRadius:8, marginBottom:4, transition:'background .15s' }}
+        <div style={{ padding:'16px 12px', borderTop:'1px solid rgba(255,255,255,.06)', flexShrink:0 }}>
+          <NavLink to="/perfil" onClick={closeSidebar} style={{ textDecoration:'none', display:'flex', alignItems:'center', gap:10, padding:'10px 10px', borderRadius:8, marginBottom:4, transition:'background .15s' }}
             onMouseEnter={e => e.currentTarget.style.background='rgba(255,255,255,.06)'}
             onMouseLeave={e => e.currentTarget.style.background='transparent'}>
             <div className="avatar avatar-sm" style={{ flexShrink:0 }}>
@@ -129,7 +181,25 @@ export default function Layout({ toast }) {
       </aside>
 
       {/* ── Contenido ───────────────────────────────────── */}
-      <main style={{ flex:1, overflowY:'auto', padding:'36px 40px' }}>
+      <main style={{
+        flex:1, overflowY:'auto',
+        padding: isMobile ? '64px 16px 24px' : '36px 40px',
+        width: isMobile ? '100%' : 'auto',
+      }}>
+        {/* Botón hamburguesa (solo móvil) */}
+        {isMobile && (
+          <button onClick={() => setSidebarOpen(true)} aria-label="Abrir menú"
+            style={{
+              position:'fixed', top:12, left:12, zIndex:998,
+              width:40, height:40, borderRadius:10,
+              border:'1px solid rgba(255,255,255,.08)',
+              background:'rgba(10,10,10,.85)', backdropFilter:'blur(10px)',
+              color:'#fff', cursor:'pointer',
+              display:'flex', alignItems:'center', justifyContent:'center',
+            }}>
+            <Menu size={20} />
+          </button>
+        )}
         <Outlet />
       </main>
     </div>

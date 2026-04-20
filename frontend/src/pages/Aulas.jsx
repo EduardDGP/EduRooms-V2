@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../hooks/useAuth'
+import { useIsMobile } from '../hooks/useIsMobile'
 import { getAulas, crearAula, borrarAula, getMisReservas } from '../api/client'
 import Modal from '../components/shared/Modal'
 import BanoPanel from '../components/Aulas/BanoPanel'
@@ -19,7 +20,8 @@ const COLORES = { Informática:'#dbeafe','Laboratorio de Física':'#fef3c7','Lab
 const TODAY = new Date().toISOString().split('T')[0]
 
 export default function Aulas({ toast }) {
-  const { user }  = useAuth()
+  const { user }   = useAuth()
+  const isMobile   = useIsMobile()
   const [aulas,        setAulas]        = useState([])
   const [reservas,     setReservas]     = useState([])
   const [filtro,       setFiltro]       = useState('all')
@@ -76,16 +78,23 @@ export default function Aulas({ toast }) {
 
   return (
     <div>
-      {/* Header */}
-      <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:24 }}>
+      {/* Header: apilado en móvil, horizontal en desktop */}
+      <div style={{
+        display:'flex',
+        flexDirection: isMobile ? 'column' : 'row',
+        alignItems: isMobile ? 'stretch' : 'flex-start',
+        justifyContent:'space-between',
+        gap: isMobile ? 12 : 0,
+        marginBottom:24,
+      }}>
         <div>
-          <h1 style={{ fontSize:26, fontWeight:800, letterSpacing:'-0.5px' }}>Aulas Especiales</h1>
+          <h1 style={{ fontSize: isMobile ? 22 : 26, fontWeight:800, letterSpacing:'-0.5px' }}>Aulas Especiales</h1>
           <p style={{ color:'var(--text3)', fontSize:14, marginTop:2 }}>Haz clic en un aula para ver y reservar franjas horarias</p>
         </div>
-        <button className="btn btn-primary btn-sm" onClick={() => setModalAddAula(true)}>+ Añadir Aula</button>
+        <button className="btn btn-primary btn-sm" onClick={() => setModalAddAula(true)} style={{ flexShrink:0 }}>+ Añadir Aula</button>
       </div>
 
-      {/* Filtros */}
+      {/* Filtros: whiteSpace:nowrap evita que "Libres hoy" parta en dos líneas */}
       <div style={{ display:'flex', gap:8, flexWrap:'wrap', marginBottom:24 }}>
         {[
           { key:'all',  label:'Todas'        },
@@ -97,6 +106,7 @@ export default function Aulas({ toast }) {
           <button key={f.key} onClick={() => setFiltro(f.key)} style={{
             padding:'7px 16px', border:'1.5px solid', borderRadius:20,
             fontFamily:'Outfit,sans-serif', fontSize:13, fontWeight:600, cursor:'pointer',
+            whiteSpace:'nowrap',
             background: filtro===f.key ? 'var(--primary-pale)' : '#fff',
             borderColor: filtro===f.key ? 'var(--primary-l)' : 'var(--border)',
             color: filtro===f.key ? 'var(--primary)' : 'var(--text2)',
@@ -104,33 +114,33 @@ export default function Aulas({ toast }) {
         ))}
       </div>
 
-      {/* Grid de aulas */}
+      {/* Grid de aulas — min(100%,270px) asegura que nunca desborde */}
       {aulasFiltradas.length === 0
         ? <p style={{ color:'var(--text3)', padding:'40px 0', textAlign:'center' }}>No hay aulas en esta categoría.</p>
         : (
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(270px,1fr))', gap:18 }}>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(min(100%, 270px), 1fr))', gap:18 }}>
             {aulasFiltradas.map(aula => {
-              const res   = aula.reserva
-              const icon  = EMOJIS[aula.tipo]  || ''
-              const color = COLORES[aula.tipo] || '#f1f5f9'
+              const res    = aula.reserva
+              const icon   = EMOJIS[aula.tipo]  || ''
+              const color  = COLORES[aula.tipo] || '#f1f5f9'
               const misHoy = reservas.filter(r => r.aula_id === aula.id && r.fecha === TODAY)
 
               return (
-                <div key={aula.id} className="card" style={{ padding:22, cursor:'pointer', transition:'all .2s' }}
+                <div key={aula.id} className="card" style={{ padding:22, cursor:'pointer', transition:'all .2s', minWidth:0 }}
                   onClick={() => setAulaDetalle(aula)}
                   onMouseEnter={e => e.currentTarget.style.transform='translateY(-2px)'}
                   onMouseLeave={e => e.currentTarget.style.transform='translateY(0)'}
                 >
-                  <div style={{ display:'flex', justifyContent:'space-between', marginBottom:14 }}>
-                    <div style={{ width:46, height:46, background:color, borderRadius:12, display:'flex', alignItems:'center', justifyContent:'center', fontSize:22 }}>{icon}</div>
-                    <span style={{ display:'inline-flex', alignItems:'center', gap:5, padding:'4px 10px', borderRadius:20, fontSize:11, fontWeight:700, background: res ? 'var(--red-pale)' : 'var(--green-pale)', color: res ? 'var(--red)' : 'var(--green)' }}>
+                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:8, marginBottom:14 }}>
+                    <div style={{ width:46, height:46, background:color, borderRadius:12, display:'flex', alignItems:'center', justifyContent:'center', fontSize:22, flexShrink:0 }}>{icon}</div>
+                    <span style={{ display:'inline-flex', alignItems:'center', gap:5, padding:'4px 10px', borderRadius:20, fontSize:11, fontWeight:700, whiteSpace:'nowrap', background: res ? 'var(--red-pale)' : 'var(--green-pale)', color: res ? 'var(--red)' : 'var(--green)' }}>
                       <span style={{ width:6, height:6, borderRadius:'50%', background:'currentColor' }}></span>
                       {res ? 'Ocupada ahora' : 'Libre ahora'}
                     </span>
                   </div>
 
-                  <div style={{ fontWeight:700, fontSize:16, marginBottom:2 }}>{aula.nombre}</div>
-                  <div style={{ fontSize:13, color:'var(--text3)', marginBottom:12 }}>{aula.tipo} · {aula.capacidad} alumnos</div>
+                  <div style={{ fontWeight:700, fontSize:16, marginBottom:2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{aula.nombre}</div>
+                  <div style={{ fontSize:13, color:'var(--text3)', marginBottom:12, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{aula.tipo} · {aula.capacidad} alumnos</div>
 
                   {res && (
                     <div style={{ background:'var(--red-pale)', border:'1px solid #fecaca', borderRadius:8, padding:'9px 12px', marginBottom:12 }}>
@@ -139,7 +149,7 @@ export default function Aulas({ toast }) {
                     </div>
                   )}
 
-                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:6, flexWrap:'wrap' }}>
                     <span style={{ fontSize:12, color:'var(--primary)', fontWeight:600 }}>🔍 Ver franjas →</span>
                     <div style={{ display:'flex', gap:6, alignItems:'center' }}>
                       {misHoy.length > 0 && (
@@ -161,17 +171,25 @@ export default function Aulas({ toast }) {
         )
       }
 
-      {/* Mis reservas de hoy */}
+      {/* Mis reservas de hoy: flexWrap para que no desborde en móvil */}
       <div className="card" style={{ marginTop:28 }}>
         <h2 style={{ fontSize:16, fontWeight:700, marginBottom:16, paddingBottom:12, borderBottom:'1px solid var(--border)' }}>📅 Mis Reservas de Hoy</h2>
         {reservas.filter(r => r.fecha === TODAY).length === 0
           ? <p style={{ color:'var(--text3)', fontSize:14 }}>No tienes reservas para hoy.</p>
           : reservas.filter(r => r.fecha === TODAY).map(r => (
-            <div key={r.id} style={{ display:'flex', alignItems:'center', gap:12, padding:'11px 0', borderBottom:'1px solid var(--border)', fontSize:13 }}>
-              <span style={{ fontWeight:700, width:130, flexShrink:0 }}>{r.aula_nombre}</span>
+            <div key={r.id} style={{
+              display:'flex',
+              flexWrap:'wrap',
+              alignItems:'center',
+              gap: isMobile ? 8 : 12,
+              padding:'11px 0',
+              borderBottom:'1px solid var(--border)',
+              fontSize:13,
+            }}>
+              <span style={{ fontWeight:700, width: isMobile ? 'auto' : 130, flexShrink:0 }}>{r.aula_nombre}</span>
               <span style={{ background:'var(--primary-pale)', color:'var(--primary)', padding:'2px 9px', borderRadius:20, fontSize:11, fontWeight:700, flexShrink:0 }}>{r.franja_label}</span>
               <span style={{ fontFamily:'Fira Code,monospace', color:'var(--text3)', fontSize:11, flexShrink:0 }}>{r.hora_inicio}–{r.hora_fin}</span>
-              <span style={{ flex:1, color:'var(--text2)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{r.asignatura}</span>
+              <span style={{ flex:1, minWidth:0, color:'var(--text2)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{r.asignatura}</span>
             </div>
           ))
         }
