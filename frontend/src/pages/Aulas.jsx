@@ -6,17 +6,39 @@ import Modal from '../components/shared/Modal'
 import BanoPanel from '../components/Aulas/BanoPanel'
 import AulaDetalle from '../components/Aulas/AulaDetalle'
 import HistorialReservas from '../components/Aulas/HistorialReservas'
+import {
+  Monitor, Atom, Dna, FlaskConical, Wrench, Bot,
+  User, BookOpen, ArrowRight, Calendar, Plus, Trash2, Search
+} from 'lucide-react'
 
 const TIPOS = [
-  { value:'Informática',             label:'💻 Informática'             },
-  { value:'Laboratorio de Física',   label:'⚗️ Laboratorio de Física'   },
-  { value:'Laboratorio de Biología', label:'🧬 Laboratorio de Biología' },
-  { value:'Laboratorio de Química',  label:'🧪 Laboratorio de Química'  },
-  { value:'Taller de Tecnología',    label:'🔧 Taller de Tecnología'    },
-  { value:'Sala de Robótica',        label:'🤖 Sala de Robótica'        },
+  { value:'Informática',             label:'Informática'             },
+  { value:'Laboratorio de Física',   label:'Laboratorio de Física'   },
+  { value:'Laboratorio de Biología', label:'Laboratorio de Biología' },
+  { value:'Laboratorio de Química',  label:'Laboratorio de Química'  },
+  { value:'Taller de Tecnología',    label:'Taller de Tecnología'    },
+  { value:'Sala de Robótica',        label:'Sala de Robótica'        },
 ]
-const EMOJIS  = { Informática:'💻','Laboratorio de Física':'⚗️','Laboratorio de Biología':'🧬','Laboratorio de Química':'🧪','Taller de Tecnología':'🔧','Sala de Robótica':'🤖' }
-const COLORES = { Informática:'#dbeafe','Laboratorio de Física':'#fef3c7','Laboratorio de Biología':'#d1fae5','Laboratorio de Química':'#ede9fe','Taller de Tecnología':'#fee2e2','Sala de Robótica':'#e0f2fe' }
+
+// Icono Lucide por tipo de aula
+const ICONOS = {
+  'Informática':             <Monitor size={22} />,
+  'Laboratorio de Física':   <Atom size={22} />,
+  'Laboratorio de Biología': <Dna size={22} />,
+  'Laboratorio de Química':  <FlaskConical size={22} />,
+  'Taller de Tecnología':    <Wrench size={22} />,
+  'Sala de Robótica':        <Bot size={22} />,
+}
+
+const COLORES = {
+  'Informática':             '#dbeafe',
+  'Laboratorio de Física':   '#fef3c7',
+  'Laboratorio de Biología': '#d1fae5',
+  'Laboratorio de Química':  '#ede9fe',
+  'Taller de Tecnología':    '#fee2e2',
+  'Sala de Robótica':        '#e0f2fe',
+}
+
 const TODAY = new Date().toISOString().split('T')[0]
 
 export default function Aulas({ toast }) {
@@ -58,7 +80,7 @@ export default function Aulas({ toast }) {
     e.preventDefault()
     try {
       await crearAula({ nombre:formAula.nombre, tipo:formAula.tipo, capacidad:Number(formAula.capacidad) })
-      toast('Aula añadida ', 'success')
+      toast('Aula añadida', 'success')
       setModalAddAula(false)
       setFormAula({ nombre:'', tipo:'Informática', capacidad:'30' })
       cargar()
@@ -78,7 +100,7 @@ export default function Aulas({ toast }) {
 
   return (
     <div>
-      {/* Header: apilado en móvil, horizontal en desktop */}
+      {/* Header */}
       <div style={{
         display:'flex',
         flexDirection: isMobile ? 'column' : 'row',
@@ -91,10 +113,12 @@ export default function Aulas({ toast }) {
           <h1 style={{ fontSize: isMobile ? 22 : 26, fontWeight:800, letterSpacing:'-0.5px' }}>Aulas Especiales</h1>
           <p style={{ color:'var(--text3)', fontSize:14, marginTop:2 }}>Haz clic en un aula para ver y reservar franjas horarias</p>
         </div>
-        <button className="btn btn-primary btn-sm" onClick={() => setModalAddAula(true)} style={{ flexShrink:0 }}>+ Añadir Aula</button>
+        <button className="btn btn-primary btn-sm" onClick={() => setModalAddAula(true)} style={{ flexShrink:0, display:'inline-flex', alignItems:'center', gap:6 }}>
+          <Plus size={16} /> Añadir Aula
+        </button>
       </div>
 
-      {/* Filtros: whiteSpace:nowrap evita que "Libres hoy" parta en dos líneas */}
+      {/* Filtros */}
       <div style={{ display:'flex', gap:8, flexWrap:'wrap', marginBottom:24 }}>
         {[
           { key:'all',  label:'Todas'        },
@@ -114,14 +138,14 @@ export default function Aulas({ toast }) {
         ))}
       </div>
 
-      {/* Grid de aulas — min(100%,270px) asegura que nunca desborde */}
+      {/* Grid de aulas */}
       {aulasFiltradas.length === 0
         ? <p style={{ color:'var(--text3)', padding:'40px 0', textAlign:'center' }}>No hay aulas en esta categoría.</p>
         : (
           <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(min(100%, 270px), 1fr))', gap:18 }}>
             {aulasFiltradas.map(aula => {
               const res    = aula.reserva
-              const icon   = EMOJIS[aula.tipo]  || ''
+              const icono  = ICONOS[aula.tipo]  || <Monitor size={22} />
               const color  = COLORES[aula.tipo] || '#f1f5f9'
               const misHoy = reservas.filter(r => r.aula_id === aula.id && r.fecha === TODAY)
 
@@ -132,7 +156,9 @@ export default function Aulas({ toast }) {
                   onMouseLeave={e => e.currentTarget.style.transform='translateY(0)'}
                 >
                   <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:8, marginBottom:14 }}>
-                    <div style={{ width:46, height:46, background:color, borderRadius:12, display:'flex', alignItems:'center', justifyContent:'center', fontSize:22, flexShrink:0 }}>{icon}</div>
+                    <div style={{ width:46, height:46, background:color, borderRadius:12, display:'flex', alignItems:'center', justifyContent:'center', color:'var(--text)', flexShrink:0 }}>
+                      {icono}
+                    </div>
                     <span style={{ display:'inline-flex', alignItems:'center', gap:5, padding:'4px 10px', borderRadius:20, fontSize:11, fontWeight:700, whiteSpace:'nowrap', background: res ? 'var(--red-pale)' : 'var(--green-pale)', color: res ? 'var(--red)' : 'var(--green)' }}>
                       <span style={{ width:6, height:6, borderRadius:'50%', background:'currentColor' }}></span>
                       {res ? 'Ocupada ahora' : 'Libre ahora'}
@@ -144,13 +170,19 @@ export default function Aulas({ toast }) {
 
                   {res && (
                     <div style={{ background:'var(--red-pale)', border:'1px solid #fecaca', borderRadius:8, padding:'9px 12px', marginBottom:12 }}>
-                      <div style={{ fontWeight:700, color:'var(--red)', fontSize:12 }}>👤 {res.nombre} {res.apellidos}</div>
-                      <div style={{ fontSize:12, color:'var(--text2)', marginTop:2 }}>📚 {res.asignatura} · {res.hora_inicio}–{res.hora_fin}</div>
+                      <div style={{ display:'flex', alignItems:'center', gap:6, fontWeight:700, color:'var(--red)', fontSize:12 }}>
+                        <User size={13} /> {res.nombre} {res.apellidos}
+                      </div>
+                      <div style={{ display:'flex', alignItems:'center', gap:6, fontSize:12, color:'var(--text2)', marginTop:4 }}>
+                        <BookOpen size={13} /> {res.asignatura} · {res.hora_inicio}–{res.hora_fin}
+                      </div>
                     </div>
                   )}
 
                   <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:6, flexWrap:'wrap' }}>
-                    <span style={{ fontSize:12, color:'var(--primary)', fontWeight:600 }}>🔍 Ver franjas →</span>
+                    <span style={{ display:'inline-flex', alignItems:'center', gap:5, fontSize:12, color:'var(--primary)', fontWeight:600 }}>
+                      Ver franjas <ArrowRight size={13} />
+                    </span>
                     <div style={{ display:'flex', gap:6, alignItems:'center' }}>
                       {misHoy.length > 0 && (
                         <span style={{ fontSize:11, background:'var(--primary-pale)', color:'var(--primary)', padding:'2px 8px', borderRadius:20, fontWeight:600 }}>
@@ -159,9 +191,11 @@ export default function Aulas({ toast }) {
                       )}
                       <button className="btn btn-outline btn-sm"
                         onClick={e => { e.stopPropagation(); handleBorrarAula(aula.id) }}
-                        style={{ padding:'4px 8px', fontSize:13 }}
+                        style={{ padding:'6px 8px', display:'inline-flex', alignItems:'center', justifyContent:'center' }}
                         title="Eliminar aula"
-                      ></button>
+                      >
+                        <Trash2 size={14} />
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -171,9 +205,11 @@ export default function Aulas({ toast }) {
         )
       }
 
-      {/* Mis reservas de hoy: flexWrap para que no desborde en móvil */}
+      {/* Mis reservas de hoy */}
       <div className="card" style={{ marginTop:28 }}>
-        <h2 style={{ fontSize:16, fontWeight:700, marginBottom:16, paddingBottom:12, borderBottom:'1px solid var(--border)' }}>📅 Mis Reservas de Hoy</h2>
+        <h2 style={{ display:'flex', alignItems:'center', gap:8, fontSize:16, fontWeight:700, marginBottom:16, paddingBottom:12, borderBottom:'1px solid var(--border)' }}>
+          <Calendar size={16} /> Mis Reservas de Hoy
+        </h2>
         {reservas.filter(r => r.fecha === TODAY).length === 0
           ? <p style={{ color:'var(--text3)', fontSize:14 }}>No tienes reservas para hoy.</p>
           : reservas.filter(r => r.fecha === TODAY).map(r => (
@@ -206,7 +242,7 @@ export default function Aulas({ toast }) {
       </div>
 
       {/* Modal añadir aula */}
-      <Modal open={modalAddAula} onClose={() => setModalAddAula(false)} title="➕ Añadir nueva aula">
+      <Modal open={modalAddAula} onClose={() => setModalAddAula(false)} title="Añadir nueva aula">
         <form onSubmit={handleAddAula}>
           <div className="form-group">
             <label>Nombre del aula</label>
@@ -224,7 +260,9 @@ export default function Aulas({ toast }) {
           </div>
           <div style={{ display:'flex', gap:10, justifyContent:'flex-end', marginTop:20 }}>
             <button type="button" className="btn btn-outline btn-sm" onClick={() => setModalAddAula(false)}>Cancelar</button>
-            <button type="submit" className="btn btn-success btn-sm">Añadir aula</button>
+            <button type="submit" className="btn btn-success btn-sm" style={{ display:'inline-flex', alignItems:'center', gap:6 }}>
+              <Plus size={14} /> Añadir aula
+            </button>
           </div>
         </form>
       </Modal>
