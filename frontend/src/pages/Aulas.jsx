@@ -1,3 +1,4 @@
+import { useConfirm } from '../components/shared/ConfirmDialog'
 import { useState, useEffect } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { useIsMobile } from '../hooks/useIsMobile'
@@ -44,6 +45,7 @@ const TODAY = new Date().toISOString().split('T')[0]
 export default function Aulas({ toast }) {
   const { user }   = useAuth()
   const isMobile   = useIsMobile()
+  const confirmar  = useConfirm()
   const [aulas,        setAulas]        = useState([])
   const [reservas,     setReservas]     = useState([])
   const [filtro,       setFiltro]       = useState('all')
@@ -87,8 +89,15 @@ export default function Aulas({ toast }) {
     } catch (err) { toast(err.message, 'error') }
   }
 
-  async function handleBorrarAula(id) {
-    if (!confirm('¿Eliminar esta aula y sus reservas?')) return
+  async function handleBorrarAula(id, nombre) {
+    const ok = await confirmar({
+      title: 'Eliminar aula',
+      message: `¿Seguro que quieres eliminar "${nombre}"? Se borrarán también todas sus reservas.`,
+      confirmText: 'Eliminar',
+      cancelText: 'Cancelar',
+      variant: 'danger',
+    })
+    if (!ok) return
     try {
       await borrarAula(id)
       toast('Aula eliminada', 'info')
@@ -190,7 +199,7 @@ export default function Aulas({ toast }) {
                         </span>
                       )}
                       <button className="btn btn-outline btn-sm"
-                        onClick={e => { e.stopPropagation(); handleBorrarAula(aula.id) }}
+                        onClick={e => { e.stopPropagation(); handleBorrarAula(aula.id, aula.nombre) }}
                         style={{ padding:'6px 8px', display:'inline-flex', alignItems:'center', justifyContent:'center' }}
                         title="Eliminar aula"
                       >
