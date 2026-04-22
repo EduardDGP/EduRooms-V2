@@ -119,6 +119,11 @@ export default function Login({ toast }) {
             ¿Primera vez?{' '}
             <Link to="/registro" style={{ color:'var(--primary)', fontWeight:700, textDecoration:'none' }}>Solicitar acceso</Link>
           </p>
+
+          <p style={{ textAlign:'center', marginTop:8, fontSize:14, color:'var(--text3)' }}>
+            ¿Has cambiado de centro?{' '}
+            <Link to="/cambiar-centro" style={{ color:'var(--primary)', fontWeight:700, textDecoration:'none' }}>Cámbialo aquí</Link>
+          </p>
         </div>
       </div>
     </div>

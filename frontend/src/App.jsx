@@ -1,23 +1,25 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './hooks/useAuth'
 import { useToast } from './hooks/useToast'
-import Login          from './pages/Login'
-import Register       from './pages/Register'
-import Layout         from './components/shared/Layout'
-import Aulas          from './pages/Aulas'
-import Social         from './pages/Social'
-import Perfil         from './pages/Perfil'
-import Admin          from './pages/Admin'
-import Alumnos        from './pages/Alumnos'
-import Notificaciones from './pages/Notificaciones'
-import Guardias       from './pages/Guardias'
-import Superadmin      from './pages/Superadmin'
+import Login            from './pages/Login'
+import Register         from './pages/Register'
+import Layout           from './components/shared/Layout'
+import Aulas            from './pages/Aulas'
+import Social           from './pages/Social'
+import Perfil           from './pages/Perfil'
+import Admin            from './pages/Admin'
+import Alumnos          from './pages/Alumnos'
+import Notificaciones   from './pages/Notificaciones'
+import Guardias         from './pages/Guardias'
+import Superadmin       from './pages/Superadmin'
 import SuperadminLogin  from './pages/SuperadminLogin'
 import VerificarCentro  from './pages/VerificarCentro'
 import ResetPassword    from './pages/ResetPassword'
 import ConfirmarBaja    from './pages/ConfirmarBaja'
-import Landing         from './pages/Landing'
-import Toast          from './components/shared/Toast'
+import ConfirmarAbandono from './pages/ConfirmarAbandono'
+import CambiarCentro    from './pages/CambiarCentro'
+import Landing          from './pages/Landing'
+import Toast            from './components/shared/Toast'
 
 function RootRedirect() {
   const { user } = useAuth()
@@ -46,15 +48,17 @@ function AppInner() {
   return (
     <>
       <Routes>
-      <Route path="/"              element={<RootRedirect />} />
-      <Route path="/bienvenida"    element={<Landing />} />
-      <Route path="/login"         element={<PublicRoute><Login toast={showToast} /></PublicRoute>} />
-      <Route path="/registro"      element={<PublicRoute><Register toast={showToast} /></PublicRoute>} />
-      <Route path="/superadmin/login" element={<SuperadminLogin />} />
-      <Route path="/superadmin"    element={<Superadmin />} />
-      <Route path="/verificar-centro" element={<VerificarCentro />} />
-      <Route path="/reset-password"   element={<ResetPassword />} />
-      <Route path="/confirmar-baja"   element={<ConfirmarBaja />} />
+      <Route path="/"                  element={<RootRedirect />} />
+      <Route path="/bienvenida"        element={<Landing />} />
+      <Route path="/login"             element={<PublicRoute><Login toast={showToast} /></PublicRoute>} />
+      <Route path="/registro"          element={<PublicRoute><Register toast={showToast} /></PublicRoute>} />
+      <Route path="/cambiar-centro"    element={<PublicRoute><CambiarCentro /></PublicRoute>} />
+      <Route path="/confirmar-abandono" element={<ConfirmarAbandono />} />
+      <Route path="/superadmin/login"  element={<SuperadminLogin />} />
+      <Route path="/superadmin"        element={<Superadmin />} />
+      <Route path="/verificar-centro"  element={<VerificarCentro />} />
+      <Route path="/reset-password"    element={<ResetPassword />} />
+      <Route path="/confirmar-baja"    element={<ConfirmarBaja />} />
       <Route element={<PrivateRoute><Layout toast={showToast} /></PrivateRoute>}>
         <Route path="aulas"          element={<Aulas          toast={showToast} />} />
         <Route path="social"         element={<Social         toast={showToast} />} />
