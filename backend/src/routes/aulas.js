@@ -5,6 +5,17 @@ const { verificarToken } = require('../middleware/auth')
 const router = express.Router()
 router.use(verificarToken)
 
+// ── Middleware: solo director o jefe de estudios ──────────
+function soloDireccion(req, res, next) {
+  const db       = getDB()
+  const profesor = db.prepare('SELECT rol FROM profesores WHERE id = ?').get(req.profesorId)
+  if (!profesor) return res.status(401).json({ error: 'Usuario no encontrado' })
+  if (!['director', 'jefe_estudios'].includes(profesor.rol)) {
+    return res.status(403).json({ error: 'Solo el director o el jefe de estudios pueden gestionar aulas' })
+  }
+  next()
+}
+
 // ── GET /api/aulas ────────────────────────────────────────
 router.get('/', (req, res) => {
   const db   = getDB()
@@ -34,8 +45,8 @@ router.get('/', (req, res) => {
   res.json(result)
 })
 
-// ── POST /api/aulas ───────────────────────────────────────
-router.post('/', (req, res) => {
+// ── POST /api/aulas ─── (solo director/jefe) ──────────────
+router.post('/', soloDireccion, (req, res) => {
   const { nombre, tipo, capacidad } = req.body
   if (!nombre || !tipo) return res.status(400).json({ error: 'Nombre y tipo son obligatorios' })
 
@@ -48,8 +59,8 @@ router.post('/', (req, res) => {
   res.status(201).json(aula)
 })
 
-// ── DELETE /api/aulas/:id ─────────────────────────────────
-router.delete('/:id', (req, res) => {
+// ── DELETE /api/aulas/:id ─── (solo director/jefe) ────────
+router.delete('/:id', soloDireccion, (req, res) => {
   const db   = getDB()
   const aula = db.prepare('SELECT * FROM aulas WHERE id = ? AND centro_id = ?').get(req.params.id, req.centroId)
   if (!aula) return res.status(404).json({ error: 'Aula no encontrada' })

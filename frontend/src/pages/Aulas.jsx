@@ -45,6 +45,7 @@ const TODAY = new Date().toISOString().split('T')[0]
 export default function Aulas({ toast }) {
   const { user }   = useAuth()
   const isMobile   = useIsMobile()
+  const puedeAnadir = ['director', 'jefe_estudios'].includes(user?.rol)
   const confirmar  = useConfirm()
   const [aulas,        setAulas]        = useState([])
   const [reservas,     setReservas]     = useState([])
@@ -53,6 +54,7 @@ export default function Aulas({ toast }) {
   const [modalAddAula, setModalAddAula] = useState(false)
   const [aulaDetalle,  setAulaDetalle]  = useState(null)
   const [formAula,     setFormAula]     = useState({ nombre:'', tipo:'Informática', capacidad:'30' })
+  const puedeAnadir = ['director', 'jefe_estudios'].includes(user?.rol)
 
   useEffect(() => {
     cargar()
@@ -122,9 +124,11 @@ export default function Aulas({ toast }) {
           <h1 style={{ fontSize: isMobile ? 22 : 26, fontWeight:800, letterSpacing:'-0.5px' }}>Aulas Especiales</h1>
           <p style={{ color:'var(--text3)', fontSize:14, marginTop:2 }}>Haz clic en un aula para ver y reservar franjas horarias</p>
         </div>
-        <button className="btn btn-primary btn-sm" onClick={() => setModalAddAula(true)} style={{ flexShrink:0, display:'inline-flex', alignItems:'center', gap:6 }}>
-          <Plus size={16} /> Añadir Aula
-        </button>
+        {puedeAnadir && (
+          <button className="btn btn-primary btn-sm" onClick={() => setModalAddAula(true)} style={{ flexShrink:0, display:'inline-flex', alignItems:'center', gap:6 }}>
+            <Plus size={16} /> Añadir Aula
+          </button>
+        )}
       </div>
 
       {/* Filtros */}
@@ -198,13 +202,15 @@ export default function Aulas({ toast }) {
                           {misHoy.length} tuya{misHoy.length !== 1 ? 's' : ''}
                         </span>
                       )}
-                      <button className="btn btn-outline btn-sm"
-                        onClick={e => { e.stopPropagation(); handleBorrarAula(aula.id, aula.nombre) }}
-                        style={{ padding:'6px 8px', display:'inline-flex', alignItems:'center', justifyContent:'center' }}
-                        title="Eliminar aula"
-                      >
-                        <Trash2 size={14} />
-                      </button>
+                      {puedeAnadir && (
+                        <button className="btn btn-outline btn-sm"
+                          onClick={e => { e.stopPropagation(); handleBorrarAula(aula.id, aula.nombre) }}
+                          style={{ padding:'6px 8px', display:'inline-flex', alignItems:'center', justifyContent:'center' }}
+                          title="Eliminar aula"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
