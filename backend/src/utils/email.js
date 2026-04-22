@@ -122,4 +122,65 @@ async function enviarEmailEnlacePago({ email, nombre, centro_nombre, url }) {
   })
 }
 
-module.exports = { enviarEmailVerificacion, enviarEmailAprobacion, enviarEmailRechazo, enviarEmailResetPassword, enviarEmailEnlacePago }
+// ─── NUEVO: Email de confirmación de abandono del centro ───
+async function enviarEmailAbandonoCentro({ email, nombre, centro_nombre, token }) {
+  const url = `${BASE_URL}/confirmar-abandono?token=${token}`
+  await getResend().emails.send({
+    from: FROM, to: email,
+    subject: 'Confirma que abandonas tu centro en ExRooms',
+    html: `
+      <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:32px">
+        <div style="margin-bottom:24px">
+          <span style="background:#0a0a0a;color:#fff;padding:8px 16px;border-radius:8px;font-weight:900;font-size:18px;font-family:Georgia,serif">Ex<span style="color:#34d399">Rooms</span></span>
+        </div>
+        <h1 style="font-size:22px;color:#0a0a0a">Hola ${nombre},</h1>
+        <p style="color:#555;font-size:15px;line-height:1.6">
+          Has solicitado abandonar <strong>${centro_nombre}</strong>. Para confirmarlo, haz click en el botón:
+        </p>
+        <div style="margin:32px 0;text-align:center">
+          <a href="${url}" style="background:#dc2626;color:#fff;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px">Confirmar abandono del centro →</a>
+        </div>
+        <div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:14px 16px;margin:24px 0">
+          <p style="color:#78350f;font-size:13px;margin:0;line-height:1.6">
+            <strong>Importante:</strong> al confirmar perderás todas tus reservas futuras y guardias pendientes en este centro. Tu cuenta se mantendrá y podrás unirte a otro centro desde la pantalla de inicio de sesión con la opción <strong>"¿Has cambiado de centro?"</strong>.
+          </p>
+        </div>
+        <p style="color:#999;font-size:13px">Si no has sido tú quien lo ha solicitado, ignora este email y tu cuenta seguirá igual.</p>
+        <hr style="border:none;border-top:1px solid #eee;margin:24px 0">
+        <p style="color:#bbb;font-size:12px;text-align:center">ExRooms · Gestión interna para centros educativos</p>
+      </div>`
+  })
+}
+
+// ─── NUEVO: Aviso al director cuando un profe se une a su centro ───
+async function enviarEmailNuevoProfesorEnCentro({ email, nombre_director, nombre_profesor, centro_nombre }) {
+  await getResend().emails.send({
+    from: FROM, to: email,
+    subject: `Nuevo profesor solicita unirse a ${centro_nombre}`,
+    html: `
+      <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:32px">
+        <div style="margin-bottom:24px">
+          <span style="background:#0a0a0a;color:#fff;padding:8px 16px;border-radius:8px;font-weight:900;font-size:18px;font-family:Georgia,serif">Ex<span style="color:#34d399">Rooms</span></span>
+        </div>
+        <h1 style="font-size:22px;color:#0a0a0a">Hola ${nombre_director},</h1>
+        <p style="color:#555;font-size:15px;line-height:1.6">
+          <strong>${nombre_profesor}</strong> ha solicitado unirse a <strong>${centro_nombre}</strong>. Entra en el panel de administración para aprobarlo o rechazarlo.
+        </p>
+        <div style="margin:32px 0;text-align:center">
+          <a href="${BASE_URL}/admin" style="background:#0a0a0a;color:#fff;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px">Ir al panel →</a>
+        </div>
+        <hr style="border:none;border-top:1px solid #eee;margin:24px 0">
+        <p style="color:#bbb;font-size:12px;text-align:center">ExRooms · Gestión interna para centros educativos</p>
+      </div>`
+  })
+}
+
+module.exports = {
+  enviarEmailVerificacion,
+  enviarEmailAprobacion,
+  enviarEmailRechazo,
+  enviarEmailResetPassword,
+  enviarEmailEnlacePago,
+  enviarEmailAbandonoCentro,
+  enviarEmailNuevoProfesorEnCentro,
+}

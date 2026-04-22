@@ -3,7 +3,7 @@ const bcrypt  = require('bcryptjs')
 const crypto  = require('crypto')
 const { getDB } = require('../config/database')
 const { generarToken, verificarToken } = require('../middleware/auth')
-const { enviarEmailVerificacion, enviarEmailResetPassword } = require('../utils/email')
+const { enviarEmailVerificacion, enviarEmailResetPassword, enviarEmailNuevoProfesorEnCentro } = require('../utils/email')
 
 const router = express.Router()
 
@@ -196,6 +196,103 @@ router.get('/me', verificarToken, (req, res) => {
   `).get(req.profesorId)
   if (!profesor) return res.status(404).json({ error: 'No encontrado' })
   res.json(profesor)
+})
+// ── GET /api/auth/confirmar-abandono ─────────────────────
+// El profe pincha en el link del email y ejecuta el abandono
+router.get('/confirmar-abandono', (req, res) => {
+  const { token } = req.query
+  if (!token) return res.status(400).json({ error: 'Token requerido' })
+
+  const db       = getDB()
+  const profesor = db.prepare('SELECT * FROM profesores WHERE abandono_token = ?').get(token)
+  if (!profesor) return res.status(404).json({ error: 'Token inválido o ya usado' })
+
+  // Director no puede abandonar — extra check de seguridad
+  if (profesor.rol === 'director') {
+    return res.status(403).json({ error: 'Un director no puede abandonar el centro. Debes transferir antes el rol.' })
+  }
+
+  const hoy = new Date().toISOString().split('T')[0]
+
+  // Borrar reservas futuras (las pasadas se quedan como historial)
+  db.prepare('DELETE FROM reservas WHERE profesor_id = ? AND fecha >= ?').run(profesor.id, hoy)
+
+  // Borrar guardias propias no cubiertas (las cubiertas por otros se mantienen para el compañero)
+  db.prepare('DELETE FROM guardias WHERE profesor_id = ? AND cubierta_por IS NULL').run(profesor.id)
+
+  // Si estaba cubriendo guardias de otros, liberarlas
+  db.prepare('UPDATE guardias SET cubierta_por = NULL WHERE cubierta_por = ?').run(profesor.id)
+
+  // Desvincular del centro y limpiar token + estado
+  db.prepare(`
+    UPDATE profesores
+    SET centro_id = NULL,
+        abandono_token = NULL,
+        abandono_solicitado = 0,
+        rol = 'profesor',
+        aprobado = 0
+    WHERE id = ?
+  `).run(profesor.id)
+
+  res.json({ ok: true, mensaje: 'Has abandonado el centro. Inicia sesión y elige tu nuevo centro desde la opción "¿Has cambiado de centro?".' })
+})
+
+// ── POST /api/auth/cambiar-centro ────────────────────────
+// El profe (sin centro) hace login + elige nuevo centro
+router.post('/cambiar-centro', async (req, res) => {
+  const { email, password, centro_id } = req.body
+  if (!email || !password || !centro_id) {
+    return res.status(400).json({ error: 'Email, contraseña y centro son obligatorios' })
+  }
+
+  const db       = getDB()
+  const profesor = db.prepare('SELECT * FROM profesores WHERE email = ?').get(email)
+  if (!profesor) return res.status(401).json({ error: 'Credenciales incorrectas' })
+
+  const ok = bcrypt.compareSync(password, profesor.password)
+  if (!ok) return res.status(401).json({ error: 'Credenciales incorrectas' })
+
+  // Solo permitimos cambio si NO tiene centro asignado
+  if (profesor.centro_id) {
+    return res.status(403).json({ error: 'Ya perteneces a un centro. Primero debes abandonarlo desde tu perfil.' })
+  }
+
+  // Verificar centro destino
+  const centro = db.prepare('SELECT * FROM centros WHERE id = ?').get(centro_id)
+  if (!centro) return res.status(404).json({ error: 'Centro no encontrado' })
+  if (centro.aprobado !== 1) return res.status(403).json({ error: 'Ese centro no está disponible' })
+
+  // Actualizar: vincular al nuevo centro como pendiente de aprobación
+  db.prepare(`
+    UPDATE profesores
+    SET centro_id = ?,
+        aprobado = 0,
+        rol = 'profesor'
+    WHERE id = ?
+  `).run(centro_id, profesor.id)
+
+  // Notificar al director del centro destino
+  try {
+    const director = db.prepare(`
+      SELECT email, nombre FROM profesores
+      WHERE centro_id = ? AND rol = 'director' AND aprobado = 1
+      LIMIT 1
+    `).get(centro_id)
+
+    if (director) {
+      await enviarEmailNuevoProfesorEnCentro({
+        email: director.email,
+        nombre_director: director.nombre,
+        nombre_profesor: `${profesor.nombre} ${profesor.apellidos}`,
+        centro_nombre: centro.nombre,
+      })
+    }
+  } catch (err) { console.error('Error email nuevo profesor:', err.message) }
+
+  res.json({
+    ok: true,
+    mensaje: `Solicitud enviada a ${centro.nombre}. El director recibirá un email para aprobarte.`,
+  })
 })
 
 module.exports = router
