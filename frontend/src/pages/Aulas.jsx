@@ -54,7 +54,6 @@ export default function Aulas({ toast }) {
   const [modalAddAula, setModalAddAula] = useState(false)
   const [aulaDetalle,  setAulaDetalle]  = useState(null)
   const [formAula,     setFormAula]     = useState({ nombre:'', tipo:'Informática', capacidad:'30' })
-  const puedeAnadir = ['director', 'jefe_estudios'].includes(user?.rol)
 
   useEffect(() => {
     cargar()
