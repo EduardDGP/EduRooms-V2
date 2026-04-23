@@ -25,6 +25,7 @@ export default function Admin({ toast }) {
   const [centro,       setCentro]       = useState(null)
   const [loading,      setLoading]      = useState(true)
   const [subiendoLogo, setSubiendoLogo] = useState(false)
+  const [solicitandoBaja, setSolicitandoBaja] = useState(false) 
   const [traspaso,     setTraspaso]     = useState({ pendiente: false })
   const [selTraspaso,  setSelTraspaso]  = useState('')
   const [iniciandoTraspaso, setIniciandoTraspaso] = useState(false)
