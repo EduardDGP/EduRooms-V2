@@ -20,6 +20,7 @@ import ConfirmarAbandono from './pages/ConfirmarAbandono'
 import CambiarCentro    from './pages/CambiarCentro'
 import Landing          from './pages/Landing'
 import Toast            from './components/shared/Toast'
+import AceptarDireccion  from './pages/AceptarDireccion'
 
 function RootRedirect() {
   const { user } = useAuth()
@@ -54,6 +55,7 @@ function AppInner() {
       <Route path="/registro"          element={<PublicRoute><Register toast={showToast} /></PublicRoute>} />
       <Route path="/cambiar-centro"    element={<PublicRoute><CambiarCentro /></PublicRoute>} />
       <Route path="/confirmar-abandono" element={<ConfirmarAbandono />} />
+      <Route path="/aceptar-direccion"  element={<AceptarDireccion />} />
       <Route path="/superadmin/login"  element={<SuperadminLogin />} />
       <Route path="/superadmin"        element={<Superadmin />} />
       <Route path="/verificar-centro"  element={<VerificarCentro />} />

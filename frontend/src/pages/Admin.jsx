@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { useIsMobile } from '../hooks/useIsMobile'
 import { useConfirm } from '../components/shared/ConfirmDialog'
-import { Clock, Users, XCircle, Briefcase, Building2, CheckCircle2, UserCheck, UserX, Trash2, Upload, AlertTriangle, Mail, BookOpen, Ban, ShieldCheck } from 'lucide-react'
+import { Clock, Users, XCircle, Briefcase, Building2, CheckCircle2, UserCheck, UserX, Trash2, Upload, AlertTriangle, Mail, BookOpen, Ban, ShieldCheck, Crown, Send } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+
 
 const BASE = '/api'
 const req = (method, path, body) =>
@@ -24,7 +25,10 @@ export default function Admin({ toast }) {
   const [centro,       setCentro]       = useState(null)
   const [loading,      setLoading]      = useState(true)
   const [subiendoLogo, setSubiendoLogo] = useState(false)
-  const [solicitandoBaja, setSolicitandoBaja] = useState(false)
+  const [traspaso,     setTraspaso]     = useState({ pendiente: false })
+  const [selTraspaso,  setSelTraspaso]  = useState('')
+  const [iniciandoTraspaso, setIniciandoTraspaso] = useState(false)
+  
 
   useEffect(() => {
     if (!user || !['director','jefe_estudios','superadmin'].includes(user.rol)) { navigate('/aulas'); return }
@@ -34,12 +38,13 @@ export default function Admin({ toast }) {
   async function cargar() {
     setLoading(true)
     try {
-      const [p, a, c] = await Promise.all([
+      const [p, a, c, t] = await Promise.all([
         req('GET', '/admin/pendientes'),
         req('GET', '/admin/profesores'),
         req('GET', '/admin/centro'),
+        req('GET', '/admin/traspaso').catch(() => ({ pendiente: false })),
       ])
-      setPendientes(p); setProfesores(a); setCentro(c)
+      setPendientes(p); setProfesores(a); setCentro(c); setTraspaso(t)
     } catch (err) { toast(err.message, 'error') }
     finally { setLoading(false) }
   }
@@ -112,6 +117,48 @@ export default function Admin({ toast }) {
       cargar()
     } catch (err) { toast(err.message, 'error') }
     finally { setSolicitandoBaja(false) }
+  }
+  
+  async function handleIniciarTraspaso() {
+  if (!selTraspaso) { toast('Selecciona un profesor', 'error'); return }
+
+  const destino = profesores.find(p => p.id === Number(selTraspaso))
+  if (!destino) return
+
+  const ok = await confirmar({
+    title: 'Traspasar dirección',
+    message: `¿Traspasar la dirección a ${destino.nombre} ${destino.apellidos}? Le enviaremos un email para que confirme. Si acepta, tú pasarás a ser profesor y él/ella será el nuevo director.`,
+    confirmText: 'Enviar email',
+    cancelText: 'Cancelar',
+    variant: 'danger',
+  })
+  if (!ok) return
+
+  setIniciandoTraspaso(true)
+  try {
+    const data = await req('POST', '/admin/traspaso', { profesor_id: Number(selTraspaso) })
+    toast(data.mensaje, 'success')
+    setSelTraspaso('')
+    cargar()
+  } catch (err) { toast(err.message, 'error') }
+  finally { setIniciandoTraspaso(false) }
+  }
+
+  async function handleCancelarTraspaso() {
+    const ok = await confirmar({
+      title: 'Cancelar traspaso',
+      message: '¿Cancelar la solicitud de traspaso? El enlace del email dejará de funcionar.',
+      confirmText: 'Sí, cancelar',
+      cancelText: 'Volver',
+      variant: 'default',
+    })
+    if (!ok) return
+
+    try {
+      const data = await req('DELETE', '/admin/traspaso')
+      toast(data.mensaje, 'info')
+      cargar()
+    } catch (err) { toast(err.message, 'error') }
   }
 
   async function handleLogoUpload(e) {
@@ -319,27 +366,89 @@ export default function Admin({ toast }) {
                 ))}
               </div>
 
-              {/* Zona de peligro */}
+              {/* Zona de director — Traspaso de dirección + Zona de peligro */}
               {user?.rol === 'director' && (
-                <div style={{ marginTop:24, paddingTop:20, borderTop:'1px solid var(--border)' }}>
-                  <div style={{ display:'flex', alignItems:'center', gap:6, fontSize:12, fontWeight:700, color:'var(--red)', textTransform:'uppercase', letterSpacing:'.5px', marginBottom:8 }}>
-                    <AlertTriangle size={13} /> Zona de peligro
+                <>
+                  {/* Traspaso de dirección */}
+                  <div style={{ marginTop:24, paddingTop:20, borderTop:'1px solid var(--border)' }}>
+                    <div style={{ display:'flex', alignItems:'center', gap:6, fontSize:12, fontWeight:700, color:'#b45309', textTransform:'uppercase', letterSpacing:'.5px', marginBottom:12 }}>
+                      <Crown size={13} /> Traspasar dirección
+                    </div>
+
+                    {traspaso.pendiente ? (
+                      <div>
+                        <div style={{ background:'#fffbeb', border:'1px solid #fcd34d', borderRadius:8, padding:'12px 14px', marginBottom:14, fontSize:13, color:'#78350f', display:'flex', gap:8, alignItems:'flex-start' }}>
+                          <Send size={16} style={{ flexShrink:0, marginTop:1 }} />
+                          <span>
+                            Traspaso pendiente de confirmación por <strong>{traspaso.destino?.nombre} {traspaso.destino?.apellidos}</strong>. Cuando acepte desde su email, se harán efectivos los cambios.
+                          </span>
+                        </div>
+                        <div style={{
+                          display:'flex',
+                          flexDirection: isMobile ? 'column' : 'row',
+                          alignItems: isMobile ? 'stretch' : 'center',
+                          justifyContent:'space-between',
+                          gap:12,
+                        }}>
+                          <p style={{ fontSize:13, color:'var(--text3)', flex:1 }}>
+                            ¿Cambias de opinión? Puedes cancelar la solicitud mientras no haya sido aceptada.
+                          </p>
+                          <button className="btn btn-outline btn-sm" onClick={handleCancelarTraspaso} style={{ flexShrink:0 }}>
+                            Cancelar traspaso
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div>
+                        <p style={{ fontSize:13, color:'var(--text2)', marginBottom:12, lineHeight:1.55 }}>
+                          Si vas a dejar la dirección del centro, puedes traspasarla a otro profesor o jefe de estudios. Se le enviará un email para confirmar. Cuando acepte, tú pasarás a ser profesor y él/ella será el nuevo director.
+                        </p>
+                        <div style={{
+                          display:'flex',
+                          flexDirection: isMobile ? 'column' : 'row',
+                          gap:10, alignItems: isMobile ? 'stretch' : 'center',
+                        }}>
+                          <select value={selTraspaso} onChange={e => setSelTraspaso(e.target.value)}
+                            style={{ flex:1, padding:'9px 12px', borderRadius:8, border:'1.5px solid var(--border)', background:'#fff', fontFamily:'Outfit,sans-serif', fontSize:14 }}>
+                            <option value="">— Selecciona al nuevo director —</option>
+                            {profesores
+                              .filter(p => p.aprobado === 1 && ['profesor','jefe_estudios'].includes(p.rol))
+                              .map(p => (
+                                <option key={p.id} value={p.id}>
+                                  {p.nombre} {p.apellidos} {p.rol === 'jefe_estudios' ? '(Jefe/a de Estudios)' : ''}
+                                </option>
+                              ))}
+                          </select>
+                          <button className="btn btn-primary btn-sm" onClick={handleIniciarTraspaso} disabled={iniciandoTraspaso || !selTraspaso}
+                            style={{ flexShrink:0, display:'inline-flex', alignItems:'center', justifyContent:'center', gap:6 }}>
+                            <Send size={14} /> {iniciandoTraspaso ? 'Enviando...' : 'Iniciar traspaso'}
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  {centro.baja_solicitada ? (
-                    <div style={{ background:'#fee2e2', border:'1px solid #fca5a5', borderRadius:8, padding:'12px 16px', fontSize:13, color:'#991b1b' }}>
-                      Tu baja ha sido confirmada. Tu centro seguirá activo hasta el final del período actual.
+
+                  {/* Zona de peligro (baja del centro) */}
+                  <div style={{ marginTop:24, paddingTop:20, borderTop:'1px solid var(--border)' }}>
+                    <div style={{ display:'flex', alignItems:'center', gap:6, fontSize:12, fontWeight:700, color:'var(--red)', textTransform:'uppercase', letterSpacing:'.5px', marginBottom:8 }}>
+                      <AlertTriangle size={13} /> Zona de peligro
                     </div>
-                  ) : (
-                    <div style={{ display:'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', justifyContent:'space-between', gap:12 }}>
-                      <p style={{ fontSize:13, color:'var(--text3)', flex:1 }}>
-                        Al darte de baja recibirás un email de confirmación. Tu centro seguirá activo hasta el final del período pagado.
-                      </p>
-                      <button className="btn btn-danger btn-sm" style={{ flexShrink:0 }} onClick={handleSolicitarBaja} disabled={solicitandoBaja}>
-                        {solicitandoBaja ? 'Enviando...' : 'Solicitar baja'}
-                      </button>
-                    </div>
-                  )}
-                </div>
+                    {centro.baja_solicitada ? (
+                      <div style={{ background:'#fee2e2', border:'1px solid #fca5a5', borderRadius:8, padding:'12px 16px', fontSize:13, color:'#991b1b' }}>
+                        Tu baja ha sido confirmada. Tu centro seguirá activo hasta el final del período actual.
+                      </div>
+                    ) : (
+                      <div style={{ display:'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'stretch' : 'center', justifyContent:'space-between', gap:12 }}>
+                        <p style={{ fontSize:13, color:'var(--text3)', flex:1 }}>
+                          Al darte de baja recibirás un email de confirmación. Tu centro seguirá activo hasta el final del período pagado.
+                        </p>
+                        <button className="btn btn-danger btn-sm" style={{ flexShrink:0 }} onClick={handleSolicitarBaja} disabled={solicitandoBaja}>
+                          {solicitandoBaja ? 'Enviando...' : 'Solicitar baja'}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </>
               )}
             </>
           ) : (
