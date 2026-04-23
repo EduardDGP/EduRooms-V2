@@ -3,8 +3,7 @@ const bcrypt  = require('bcryptjs')
 const crypto  = require('crypto')
 const { getDB } = require('../config/database')
 const { generarToken, verificarToken } = require('../middleware/auth')
-const { enviarEmailVerificacion, enviarEmailResetPassword, enviarEmailNuevoProfesorEnCentro } = require('../utils/email')
-
+const { enviarEmailVerificacion, enviarEmailResetPassword, enviarEmailNuevoProfesorEnCentro, enviarEmailTraspasoCompletado } = require('../utils/email')
 const router = express.Router()
 
 // ── GET /api/auth/verificar-centro ───────────────────────
@@ -292,6 +291,78 @@ router.post('/cambiar-centro', async (req, res) => {
   res.json({
     ok: true,
     mensaje: `Solicitud enviada a ${centro.nombre}. El director recibirá un email para aprobarte.`,
+  })
+})
+
+// ── GET /api/auth/aceptar-direccion ──────────────────────
+// El profe destino pincha en el link del email y acepta ser director
+router.get('/aceptar-direccion', async (req, res) => {
+  const { token } = req.query
+  if (!token) return res.status(400).json({ error: 'Token requerido' })
+
+  const db     = getDB()
+  const centro = db.prepare('SELECT * FROM centros WHERE traspaso_token = ?').get(token)
+  if (!centro) return res.status(404).json({ error: 'Enlace inválido o ya usado' })
+  if (!centro.traspaso_destino_id) return res.status(400).json({ error: 'No hay traspaso pendiente' })
+
+  // Verificar que el destino sigue siendo válido
+  const nuevoDirector = db.prepare(`
+    SELECT * FROM profesores
+    WHERE id = ? AND centro_id = ? AND rol IN ('profesor','jefe_estudios') AND aprobado = 1
+  `).get(centro.traspaso_destino_id, centro.id)
+
+  if (!nuevoDirector) {
+    // Limpiar y avisar
+    db.prepare('UPDATE centros SET traspaso_token = NULL, traspaso_destino_id = NULL WHERE id = ?').run(centro.id)
+    return res.status(404).json({ error: 'El profesor destino ya no pertenece al centro. El traspaso se ha cancelado.' })
+  }
+
+  // Buscar el director actual del centro
+  const antiguoDirector = db.prepare(`
+    SELECT * FROM profesores
+    WHERE centro_id = ? AND rol = 'director' AND aprobado = 1
+    LIMIT 1
+  `).get(centro.id)
+
+  if (!antiguoDirector) {
+    db.prepare('UPDATE centros SET traspaso_token = NULL, traspaso_destino_id = NULL WHERE id = ?').run(centro.id)
+    return res.status(500).json({ error: 'No se encontró al director actual del centro' })
+  }
+
+  // Intercambio de roles — transaccional
+  const intercambio = db.transaction(() => {
+    // 1. Antiguo director → profesor
+    db.prepare('UPDATE profesores SET rol = ? WHERE id = ?').run('profesor', antiguoDirector.id)
+    // 2. Nuevo director → director
+    db.prepare('UPDATE profesores SET rol = ? WHERE id = ?').run('director', nuevoDirector.id)
+    // 3. Limpiar token y destino
+    db.prepare('UPDATE centros SET traspaso_token = NULL, traspaso_destino_id = NULL WHERE id = ?').run(centro.id)
+  })
+  intercambio()
+
+  // Enviar emails de confirmación a ambos (si falla, no revertimos — el cambio ya está hecho)
+  try {
+    await Promise.all([
+      enviarEmailTraspasoCompletado({
+        email: nuevoDirector.email,
+        nombre: nuevoDirector.nombre,
+        centro_nombre: centro.nombre,
+        rol: 'nuevo_director',
+      }),
+      enviarEmailTraspasoCompletado({
+        email: antiguoDirector.email,
+        nombre: antiguoDirector.nombre,
+        centro_nombre: centro.nombre,
+        rol: 'antiguo_director',
+      }),
+    ])
+  } catch (err) {
+    console.error('Error email traspaso completado:', err.message)
+  }
+
+  res.json({
+    ok: true,
+    mensaje: `¡Enhorabuena ${nuevoDirector.nombre}! Ahora eres director/a de ${centro.nombre}. Inicia sesión para acceder al panel de administración.`,
   })
 })
 

@@ -175,6 +175,68 @@ async function enviarEmailNuevoProfesorEnCentro({ email, nombre_director, nombre
   })
 }
 
+// ─── NUEVO: Email al profesor destino pidiendo aceptar la dirección ───
+async function enviarEmailTraspasoDireccion({ email, nombre_destino, nombre_director_actual, centro_nombre, token }) {
+  const url = `${BASE_URL}/aceptar-direccion?token=${token}`
+  await getResend().emails.send({
+    from: FROM, to: email,
+    subject: `${nombre_director_actual} quiere traspasarte la dirección de ${centro_nombre}`,
+    html: `
+      <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:32px">
+        <div style="margin-bottom:24px">
+          <span style="background:#0a0a0a;color:#fff;padding:8px 16px;border-radius:8px;font-weight:900;font-size:18px;font-family:Georgia,serif">Ex<span style="color:#34d399">Rooms</span></span>
+        </div>
+        <h1 style="font-size:22px;color:#0a0a0a">Hola ${nombre_destino},</h1>
+        <p style="color:#555;font-size:15px;line-height:1.6">
+          <strong>${nombre_director_actual}</strong>, director/a actual de <strong>${centro_nombre}</strong>, quiere traspasarte el rol de dirección del centro.
+        </p>
+        <p style="color:#555;font-size:15px;line-height:1.6">
+          Como director/a tendrás acceso al panel de administración para aprobar profesores, promover jefes de estudios y gestionar el centro. El director anterior pasará a ser profesor.
+        </p>
+        <div style="margin:32px 0;text-align:center">
+          <a href="${url}" style="background:#0a0a0a;color:#fff;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px">Aceptar y ser director/a →</a>
+        </div>
+        <div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:14px 16px;margin:24px 0">
+          <p style="color:#78350f;font-size:13px;margin:0;line-height:1.6">
+            <strong>Importante:</strong> este cambio es inmediato cuando pinches en el enlace. Si no quieres aceptarlo, simplemente ignora este email — nada cambiará.
+          </p>
+        </div>
+        <hr style="border:none;border-top:1px solid #eee;margin:24px 0">
+        <p style="color:#bbb;font-size:12px;text-align:center">ExRooms · Gestión interna para centros educativos</p>
+      </div>`
+  })
+}
+
+// ─── NUEVO: Email de confirmación tras aceptar el traspaso ───
+async function enviarEmailTraspasoCompletado({ email, nombre, centro_nombre, rol }) {
+  // rol: 'nuevo_director' | 'antiguo_director'
+  const esNuevo = rol === 'nuevo_director'
+  await getResend().emails.send({
+    from: FROM, to: email,
+    subject: esNuevo
+      ? `¡Ya eres director/a de ${centro_nombre}!`
+      : `Has traspasado la dirección de ${centro_nombre}`,
+    html: `
+      <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:32px">
+        <div style="margin-bottom:24px">
+          <span style="background:#0a0a0a;color:#fff;padding:8px 16px;border-radius:8px;font-weight:900;font-size:18px;font-family:Georgia,serif">Ex<span style="color:#34d399">Rooms</span></span>
+        </div>
+        <h1 style="font-size:22px;color:#0a0a0a">Hola ${nombre},</h1>
+        <p style="color:#555;font-size:15px;line-height:1.6">
+          ${esNuevo
+            ? `Enhorabuena, ya eres director/a de <strong>${centro_nombre}</strong>. Tienes acceso al panel de administración para gestionar el centro.`
+            : `Has traspasado la dirección de <strong>${centro_nombre}</strong>. Ahora tu rol es <strong>profesor/a</strong>. Seguirás teniendo tu cuenta y tus reservas, pero ya no tendrás acceso al panel de administración.`
+          }
+        </p>
+        <div style="margin:32px 0;text-align:center">
+          <a href="${BASE_URL}/login" style="background:#0a0a0a;color:#fff;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px">Acceder a ExRooms →</a>
+        </div>
+        <hr style="border:none;border-top:1px solid #eee;margin:24px 0">
+        <p style="color:#bbb;font-size:12px;text-align:center">ExRooms · Gestión interna para centros educativos</p>
+      </div>`
+  })
+}
+
 module.exports = {
   enviarEmailVerificacion,
   enviarEmailAprobacion,
@@ -183,4 +245,6 @@ module.exports = {
   enviarEmailEnlacePago,
   enviarEmailAbandonoCentro,
   enviarEmailNuevoProfesorEnCentro,
+  enviarEmailTraspasoDireccion,
+  enviarEmailTraspasoCompletado,
 }

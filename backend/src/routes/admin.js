@@ -1,10 +1,12 @@
 const express = require('express')
 const bcrypt  = require('bcryptjs')
+const crypto  = require('crypto')
 const multer  = require('multer')
 const path    = require('path')
 const fs      = require('fs')
 const { getDB } = require('../config/database')
 const { verificarToken, soloDirector, soloSuperadmin } = require('../middleware/auth')
+const { enviarEmailTraspasoDireccion } = require('../utils/email')
 
 const router = express.Router()
 router.use(verificarToken)
@@ -28,8 +30,6 @@ const upload = multer({
     allowed.includes(file.mimetype) ? cb(null, true) : cb(new Error('Solo imágenes JPG, PNG, WEBP o SVG'))
   }
 })
-
-router.use(verificarToken)
 
 // ── GET /api/admin/pendientes ─────────────────────────────
 router.get('/pendientes', soloDirector, (req, res) => {
@@ -56,9 +56,7 @@ router.get('/profesores', soloDirector, (req, res) => {
 })
 
 // ── POST /api/admin/jefe-estudios ─────────────────────────
-// El director crea una cuenta de jefe de estudios
 router.post('/jefe-estudios', (req, res) => {
-  // Solo el director puede crear jefes de estudios
   if (req.rol !== 'director') return res.status(403).json({ error: 'Solo el director puede crear jefes de estudios' })
 
   const { nombre, apellidos, email, password, asignatura } = req.body
@@ -108,16 +106,21 @@ router.delete('/profesores/:id', soloDirector, (req, res) => {
 })
 
 // ── GET /api/admin/centro ─────────────────────────────────
-// Info del propio centro
 router.get('/centro', soloDirector, (req, res) => {
   const db     = getDB()
   const centro = db.prepare('SELECT * FROM centros WHERE id = ?').get(req.centroId)
   if (!centro) return res.status(404).json({ error: 'Centro no encontrado' })
+
+  // Si hay traspaso pendiente, incluimos los datos del profesor destino
+  if (centro.traspaso_destino_id) {
+    const destino = db.prepare('SELECT id, nombre, apellidos, email, rol FROM profesores WHERE id = ?').get(centro.traspaso_destino_id)
+    centro.traspaso_destino = destino
+  }
+
   res.json(centro)
 })
 
 // ── PUT /api/admin/promover-jefe/:id ─────────────────────
-// El director promueve a un profesor a jefe de estudios
 router.put('/promover-jefe/:id', (req, res) => {
   if (req.rol !== 'director') return res.status(403).json({ error: 'Solo el director puede promover jefes de estudios' })
   const db   = getDB()
@@ -128,7 +131,6 @@ router.put('/promover-jefe/:id', (req, res) => {
 })
 
 // ── PUT /api/admin/degradar-profesor/:id ──────────────────
-// El director devuelve a jefe de estudios a profesor
 router.put('/degradar-profesor/:id', (req, res) => {
   if (req.rol !== 'director') return res.status(403).json({ error: 'Solo el director puede cambiar roles' })
   const db   = getDB()
@@ -139,14 +141,12 @@ router.put('/degradar-profesor/:id', (req, res) => {
 })
 
 // ── POST /api/admin/centro/logo ───────────────────────────
-// El director sube el logo de su centro
 router.post('/centro/logo', soloDirector, upload.single('logo'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No se recibió ninguna imagen' })
 
   const db     = getDB()
   const centro = db.prepare('SELECT logo FROM centros WHERE id = ?').get(req.centroId)
 
-  // Borrar logo anterior si existe
   if (centro?.logo) {
     const oldPath = path.join(UPLOADS_DIR, path.basename(centro.logo))
     if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath)
@@ -158,7 +158,6 @@ router.post('/centro/logo', soloDirector, upload.single('logo'), (req, res) => {
 })
 
 // ── PUT /api/admin/centro ─────────────────────────────────
-// El director edita el nombre de su centro
 router.put('/centro', soloDirector, (req, res) => {
   const { nombre, ciudad, provincia } = req.body
   if (!nombre?.trim()) return res.status(400).json({ error: 'El nombre es obligatorio' })
@@ -169,6 +168,97 @@ router.put('/centro', soloDirector, (req, res) => {
 
   const centro = db.prepare('SELECT * FROM centros WHERE id = ?').get(req.centroId)
   res.json(centro)
+})
+
+// ══════════════════════════════════════════════════════════
+// TRASPASO DE DIRECCIÓN
+// ══════════════════════════════════════════════════════════
+
+// ── GET /api/admin/traspaso ───────────────────────────────
+// Ver estado actual del traspaso (si hay pendiente)
+router.get('/traspaso', soloDirector, (req, res) => {
+  const db     = getDB()
+  const centro = db.prepare('SELECT traspaso_token, traspaso_destino_id FROM centros WHERE id = ?').get(req.centroId)
+
+  if (!centro || !centro.traspaso_destino_id) {
+    return res.json({ pendiente: false })
+  }
+
+  const destino = db.prepare('SELECT id, nombre, apellidos, email, rol FROM profesores WHERE id = ?').get(centro.traspaso_destino_id)
+
+  // Si el destino ya no existe en el centro, auto-limpiar
+  if (!destino) {
+    db.prepare('UPDATE centros SET traspaso_token = NULL, traspaso_destino_id = NULL WHERE id = ?').run(req.centroId)
+    return res.json({ pendiente: false })
+  }
+
+  res.json({ pendiente: true, destino })
+})
+
+// ── POST /api/admin/traspaso ──────────────────────────────
+// Director inicia traspaso a un profesor/jefe
+router.post('/traspaso', soloDirector, async (req, res) => {
+  const { profesor_id } = req.body
+  if (!profesor_id) return res.status(400).json({ error: 'Falta el profesor destino' })
+
+  const db     = getDB()
+  const centro = db.prepare('SELECT * FROM centros WHERE id = ?').get(req.centroId)
+
+  // Bloquear si ya hay un traspaso pendiente
+  if (centro.traspaso_destino_id) {
+    return res.status(409).json({ error: 'Ya hay un traspaso pendiente. Cancélalo antes de iniciar uno nuevo.' })
+  }
+
+  // Verificar que el destino es del mismo centro y es profesor/jefe aprobado
+  const destino = db.prepare(`
+    SELECT * FROM profesores
+    WHERE id = ? AND centro_id = ? AND rol IN ('profesor','jefe_estudios') AND aprobado = 1
+  `).get(profesor_id, req.centroId)
+
+  if (!destino) {
+    return res.status(404).json({ error: 'El profesor destino no es válido (debe ser profesor o jefe de estudios aprobado del mismo centro)' })
+  }
+
+  // Director actual (quien hace la solicitud)
+  const directorActual = db.prepare('SELECT nombre, apellidos FROM profesores WHERE id = ?').get(req.profesorId)
+  const nombreDirectorActual = `${directorActual.nombre} ${directorActual.apellidos}`
+
+  // Generar token y guardar
+  const token = crypto.randomBytes(32).toString('hex')
+  db.prepare(`
+    UPDATE centros
+    SET traspaso_token = ?, traspaso_destino_id = ?
+    WHERE id = ?
+  `).run(token, destino.id, req.centroId)
+
+  // Enviar email al destinatario
+  try {
+    await enviarEmailTraspasoDireccion({
+      email:                   destino.email,
+      nombre_destino:          destino.nombre,
+      nombre_director_actual:  nombreDirectorActual,
+      centro_nombre:           centro.nombre,
+      token,
+    })
+  } catch (err) {
+    console.error('Error email traspaso:', err.message)
+    // Si falla el email, limpiar el token para que se pueda reintentar
+    db.prepare('UPDATE centros SET traspaso_token = NULL, traspaso_destino_id = NULL WHERE id = ?').run(req.centroId)
+    return res.status(500).json({ error: 'No se pudo enviar el email. Inténtalo más tarde.' })
+  }
+
+  res.json({
+    ok: true,
+    mensaje: `Se ha enviado un email a ${destino.nombre} ${destino.apellidos}. El traspaso se hará efectivo cuando confirme desde su correo.`,
+  })
+})
+
+// ── DELETE /api/admin/traspaso ────────────────────────────
+// Director cancela traspaso pendiente
+router.delete('/traspaso', soloDirector, (req, res) => {
+  const db = getDB()
+  db.prepare('UPDATE centros SET traspaso_token = NULL, traspaso_destino_id = NULL WHERE id = ?').run(req.centroId)
+  res.json({ ok: true, mensaje: 'Traspaso cancelado. El enlace del email ha dejado de funcionar.' })
 })
 
 // ══════════════════════════════════════════════════════════
