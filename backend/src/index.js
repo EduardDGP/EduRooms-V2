@@ -15,12 +15,14 @@ const notificacionesRoutes= require('./routes/notificaciones')
 const guardiasRoutes      = require('./routes/guardias')
 const superadminRoutes    = require('./routes/superadmin')
 const stripeRoutes        = require('./routes/stripe')
+const franjasRoutes       = require('./routes/franjas')
 
 const app  = express()
 const PORT = 3001
 
 app.use(cors({ origin: 'http://localhost:5173', credentials: true }))
-// Webhook de Stripe ANTES del middleware JSON
+
+// Webhook de Stripe ANTES del middleware JSON (necesita body raw)
 app.use('/api/stripe/webhook', stripeRoutes)
 
 app.use((req, res, next) => {
@@ -39,8 +41,9 @@ app.use('/api/admin',   adminRoutes)
 app.use('/api/alumnos',        alumnosRoutes)
 app.use('/api/notificaciones', notificacionesRoutes)
 app.use('/api/guardias',       guardiasRoutes)
-app.use('/api/superadmin',    superadminRoutes)
-app.use('/api/stripe',        stripeRoutes)
+app.use('/api/superadmin',     superadminRoutes)
+app.use('/api/franjas',        franjasRoutes)
+app.use('/api/stripe',         stripeRoutes)
 
 app.get('/api/health', (req, res) => res.json({ ok: true }))
 
