@@ -16,7 +16,7 @@ router.get('/profesores', (req, res) => {
 router.get('/contactos', (req, res) => {
   const db       = getDB()
   const contactos = db.prepare(`
-    SELECT p.id, p.nombre, p.apellidos, p.asignatura, p.foto
+    SELECT p.id, p.nombre, p.apellidos, p.asignatura, p.foto, p.ultima_actividad
     FROM contactos c JOIN profesores p ON p.id = c.contacto_id
     WHERE c.profesor_id = ?
     ORDER BY p.nombre

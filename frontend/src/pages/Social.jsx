@@ -4,6 +4,34 @@ import { useIsMobile } from '../hooks/useIsMobile'
 import { getContactos, getProfesores, addContacto, getMensajes, enviarMensaje } from '../api/client'
 import { ArrowLeft, Send, Plus, MessageSquare, Search } from 'lucide-react'
 
+// Devuelve un texto tipo "Activo hace 5 min", "Hace 2h", "Hace 3 días"
+function tiempoRelativo(fechaSqlite) {
+  if (!fechaSqlite) return 'Sin actividad reciente'
+
+  // SQLite devuelve "YYYY-MM-DD HH:MM:SS" en UTC
+  const fecha = new Date(fechaSqlite.replace(' ', 'T') + 'Z')
+  const ahora = new Date()
+  const diff  = Math.max(0, ahora - fecha)
+  const min   = Math.floor(diff / 60000)
+  const horas = Math.floor(min / 60)
+  const dias  = Math.floor(horas / 24)
+
+  if (min < 2)         return 'Activo ahora'
+  if (min < 60)        return `Activo hace ${min} min`
+  if (horas < 24)      return `Activo hace ${horas} h`
+  if (dias < 7)        return `Activo hace ${dias} ${dias === 1 ? 'día' : 'días'}`
+  if (dias < 30)       return `Activo hace ${Math.floor(dias / 7)} sem`
+  return 'Inactivo'
+}
+
+// "Activo ahora" o "Activo hace 5 min" → considerar conectado (puntito verde)
+function estaActivo(fechaSqlite) {
+  if (!fechaSqlite) return false
+  const fecha = new Date(fechaSqlite.replace(' ', 'T') + 'Z')
+  const diff  = Date.now() - fecha.getTime()
+  return diff < 5 * 60 * 1000   // 5 minutos
+}
+
 export default function Social({ toast }) {
   const { user } = useAuth()
   const isMobile = useIsMobile()
@@ -47,7 +75,15 @@ export default function Social({ toast }) {
   }
 
   async function cargarContactosSilencioso() {
-    try { setContactos(await getContactos()) } catch (_) {}
+    try {
+      const data = await getContactos()
+      setContactos(data)
+      // Refresca también el activeChat para que su "Activo hace X" se actualice
+      if (activeChatRef.current) {
+        const refreshed = data.find(c => c.id === activeChatRef.current.id)
+        if (refreshed) setActiveChat(prev => prev && prev.id === refreshed.id ? { ...prev, ultima_actividad: refreshed.ultima_actividad } : prev)
+      }
+    } catch (_) {}
   }
 
   async function cargarMensajes(id) {
@@ -91,13 +127,11 @@ export default function Social({ toast }) {
 
   if (loading) return <p style={{ color:'var(--text3)' }}>Cargando...</p>
 
-  // En móvil: o lista o chat (nunca los dos). En desktop: ambos en grid.
   const mostrarLista = !isMobile || !activeChat
   const mostrarChat  = !isMobile || !!activeChat
 
   return (
     <div>
-      {/* Header — se oculta en móvil cuando hay chat abierto */}
       {!isMobile || !activeChat ? (
         <div style={{ marginBottom:20 }}>
           <h1 style={{ fontSize: isMobile ? 22 : 26, fontWeight:800, letterSpacing:'-0.5px' }}>Social</h1>
@@ -135,27 +169,37 @@ export default function Social({ toast }) {
               {contactosFiltrados.length === 0 && (
                 <p style={{ padding:20, textAlign:'center', color:'var(--text3)', fontSize:13 }}>Sin contactos aún.</p>
               )}
-              {contactosFiltrados.map(c => (
-                <div key={c.id} onClick={() => setActiveChat(c)}
-                  style={{
-                    display:'flex', alignItems:'center', gap:11,
-                    padding:'12px 18px', cursor:'pointer',
-                    borderBottom:'1px solid rgba(226,232,240,.5)',
-                    background: activeChat?.id===c.id ? 'var(--primary-pale)' : 'transparent',
-                    transition:'background .15s',
-                  }}>
-                  <div style={{ position:'relative' }}>
-                    <div className="avatar avatar-md" style={{ fontSize:14 }}>
-                      {c.foto ? <img src={c.foto} alt="" /> : c.nombre[0]+c.apellidos[0]}
+              {contactosFiltrados.map(c => {
+                const activo = estaActivo(c.ultima_actividad)
+                return (
+                  <div key={c.id} onClick={() => setActiveChat(c)}
+                    style={{
+                      display:'flex', alignItems:'center', gap:11,
+                      padding:'12px 18px', cursor:'pointer',
+                      borderBottom:'1px solid rgba(226,232,240,.5)',
+                      background: activeChat?.id===c.id ? 'var(--primary-pale)' : 'transparent',
+                      transition:'background .15s',
+                    }}>
+                    <div style={{ position:'relative' }}>
+                      <div className="avatar avatar-md" style={{ fontSize:14 }}>
+                        {c.foto ? <img src={c.foto} alt="" /> : c.nombre[0]+c.apellidos[0]}
+                      </div>
+                      {/* Punto verde solo si realmente activo (últimos 5 min) */}
+                      {activo && (
+                        <div style={{
+                          position:'absolute', bottom:0, right:0,
+                          width:10, height:10, background:'var(--green)',
+                          borderRadius:'50%', border:'2px solid #fff',
+                        }}></div>
+                      )}
                     </div>
-                    <div style={{ position:'absolute', bottom:0, right:0, width:9, height:9, background:'var(--green)', borderRadius:'50%', border:'2px solid #fff' }}></div>
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{ fontSize:14, fontWeight:600, color:'var(--text)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{c.nombre} {c.apellidos}</div>
+                      <div style={{ fontSize:12, color:'var(--text3)' }}>{c.asignatura}</div>
+                    </div>
                   </div>
-                  <div style={{ flex:1, minWidth:0 }}>
-                    <div style={{ fontSize:14, fontWeight:600, color:'var(--text)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{c.nombre} {c.apellidos}</div>
-                    <div style={{ fontSize:12, color:'var(--text3)' }}>{c.asignatura}</div>
-                  </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
 
             <div style={{ padding:'14px 18px', borderTop:'1px solid var(--border)', background:'var(--surface)' }}>
@@ -190,12 +234,26 @@ export default function Social({ toast }) {
                       <ArrowLeft size={20} />
                     </button>
                   )}
-                  <div className="avatar avatar-md" style={{ fontSize:14 }}>
-                    {activeChat.foto ? <img src={activeChat.foto} alt="" /> : activeChat.nombre[0]+activeChat.apellidos[0]}
+                  <div style={{ position:'relative' }}>
+                    <div className="avatar avatar-md" style={{ fontSize:14 }}>
+                      {activeChat.foto ? <img src={activeChat.foto} alt="" /> : activeChat.nombre[0]+activeChat.apellidos[0]}
+                    </div>
+                    {estaActivo(activeChat.ultima_actividad) && (
+                      <div style={{
+                        position:'absolute', bottom:0, right:0,
+                        width:10, height:10, background:'var(--green)',
+                        borderRadius:'50%', border:'2px solid #fff',
+                      }}></div>
+                    )}
                   </div>
                   <div style={{ flex:1, minWidth:0 }}>
                     <div style={{ fontWeight:700, fontSize:15, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{activeChat.nombre} {activeChat.apellidos}</div>
-                    <div style={{ fontSize:12, color:'var(--green)' }}>● En línea · {activeChat.asignatura}</div>
+                    <div style={{
+                      fontSize:12,
+                      color: estaActivo(activeChat.ultima_actividad) ? 'var(--green)' : 'var(--text3)',
+                    }}>
+                      {tiempoRelativo(activeChat.ultima_actividad)} · {activeChat.asignatura}
+                    </div>
                   </div>
                 </div>
 

@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken')
+const { getDB } = require('../config/database')
 
 const SECRET = process.env.JWT_SECRET || 'edurooms_secret_local_2024'
 
@@ -21,6 +22,12 @@ function verificarToken(req, res, next) {
     req.profesorId = payload.id
     req.rol        = payload.rol
     req.centroId   = payload.centro_id
+
+    // ── Actualizar última actividad (silencioso, no bloquea la petición) ──
+    try {
+      getDB().prepare(`UPDATE profesores SET ultima_actividad = datetime('now') WHERE id = ?`).run(payload.id)
+    } catch (_) { /* nunca bloquear la request por esto */ }
+
     next()
   } catch (err) {
     return res.status(401).json({ error: 'Token inválido o expirado' })
