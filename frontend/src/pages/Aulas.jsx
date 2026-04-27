@@ -9,9 +9,11 @@ import AulaDetalle from '../components/Aulas/AulaDetalle'
 import HistorialReservas from '../components/Aulas/HistorialReservas'
 import {
   Monitor, Atom, Dna, FlaskConical, Wrench, Bot,
-  User, BookOpen, Calendar, Plus, Trash2,
+  User, BookOpen, Calendar, Plus, Trash2, Clock,
 } from 'lucide-react'
 import { todayISO } from '../utils/fecha'
+
+const TODAY = todayISO()
 
 const TIPOS = [
   { value:'Informática',             label:'Informática'             },
@@ -22,26 +24,27 @@ const TIPOS = [
   { value:'Sala de Robótica',        label:'Sala de Robótica'        },
 ]
 
-// Icono Lucide + paleta sutil por tipo
+// Iconos Lucide por tipo
 const ICONOS = {
-  'Informática':             <Monitor size={20} />,
-  'Laboratorio de Física':   <Atom size={20} />,
-  'Laboratorio de Biología': <Dna size={20} />,
-  'Laboratorio de Química':  <FlaskConical size={20} />,
-  'Taller de Tecnología':    <Wrench size={20} />,
-  'Sala de Robótica':        <Bot size={20} />,
+  'Informática':             <Monitor size={22} />,
+  'Laboratorio de Física':   <Atom size={22} />,
+  'Laboratorio de Biología': <Dna size={22} />,
+  'Laboratorio de Química':  <FlaskConical size={22} />,
+  'Taller de Tecnología':    <Wrench size={22} />,
+  'Sala de Robótica':        <Bot size={22} />,
 }
 
-const PALETA = {
-  'Informática':             { bg:'#dbeafe', fg:'#1d4ed8' },
-  'Laboratorio de Física':   { bg:'#fef3c7', fg:'#b45309' },
-  'Laboratorio de Biología': { bg:'#d1fae5', fg:'#047857' },
-  'Laboratorio de Química':  { bg:'#ede9fe', fg:'#6d28d9' },
-  'Taller de Tecnología':    { bg:'#fee2e2', fg:'#b91c1c' },
-  'Sala de Robótica':        { bg:'#e0f2fe', fg:'#0369a1' },
+// Paleta por tipo: cápsula del icono + barra superior de la card
+const PALETAS = {
+  'Informática':             { bg:'#E6F1FB', fg:'#185FA5', accent:'#378ADD' },
+  'Laboratorio de Física':   { bg:'#FAEEDA', fg:'#854F0B', accent:'#EF9F27' },
+  'Laboratorio de Biología': { bg:'#E1F5EE', fg:'#0F6E56', accent:'#10b981' },
+  'Laboratorio de Química':  { bg:'#EEEDFE', fg:'#534AB7', accent:'#7F77DD' },
+  'Taller de Tecnología':    { bg:'#FCEBEB', fg:'#A32D2D', accent:'#E24B4A' },
+  'Sala de Robótica':        { bg:'#E6F1FB', fg:'#0C447C', accent:'#185FA5' },
 }
 
-const TODAY = todayISO()
+const PALETA_DEFAULT = { bg:'#F1EFE8', fg:'#5F5E5A', accent:'#888780' }
 
 export default function Aulas({ toast }) {
   const { user }   = useAuth()
@@ -83,6 +86,12 @@ export default function Aulas({ toast }) {
   const totalLibres = aulas.filter(a => !a.reserva).length
   const totalOcup   = aulas.length - totalLibres
 
+  // Próxima reserva del profe (hoy)
+  const reservasHoy = reservas.filter(r => r.fecha === TODAY)
+    .sort((a, b) => a.hora_inicio.localeCompare(b.hora_inicio))
+  const ahora       = new Date().toLocaleTimeString('es-ES', { hour:'2-digit', minute:'2-digit', hour12:false })
+  const proximaReserva = reservasHoy.find(r => r.hora_fin > ahora)
+
   async function handleAddAula(e) {
     e.preventDefault()
     try {
@@ -122,38 +131,57 @@ export default function Aulas({ toast }) {
 
   return (
     <div>
-      {/* ──────────── Header limpio con punto vivo ──────────── */}
+      {/* ──────── HERO CARD ──────── */}
       <div style={{
-        display:'flex',
+        background: 'linear-gradient(135deg, #ECFDF5 0%, #FFFFFF 65%)',
+        borderRadius: 18,
+        padding: isMobile ? '20px 22px' : '26px 30px',
+        border: '1px solid var(--border)',
+        marginBottom: 18,
+        display: 'flex',
         flexDirection: isMobile ? 'column' : 'row',
         alignItems: isMobile ? 'stretch' : 'flex-end',
-        justifyContent:'space-between',
-        gap: isMobile ? 14 : 0,
-        marginBottom: 24,
+        justifyContent: 'space-between',
+        gap: isMobile ? 18 : 16,
       }}>
         <div>
-          <h1 style={{ fontSize: isMobile ? 24 : 30, fontWeight:700, letterSpacing:'-0.6px', lineHeight:1.1 }}>Aulas</h1>
-          <div style={{ display:'flex', alignItems:'center', gap:8, marginTop:6 }}>
+          <h1 style={{ fontSize: isMobile ? 26 : 30, fontWeight:700, letterSpacing:'-0.6px', lineHeight:1.05 }}>Aulas</h1>
+          <div style={{ display:'flex', alignItems:'center', gap:10, marginTop:8 }}>
             <span className={totalLibres > 0 ? 'dot-live' : 'dot-static'}
               style={totalLibres === 0 ? { background:'var(--text3)' } : undefined}></span>
             <p style={{ color:'var(--text3)', fontSize:14, margin:0 }}>
               {totalLibres > 0
-                ? `${totalLibres} ${totalLibres === 1 ? 'aula disponible' : 'aulas disponibles'} ahora`
-                : 'Todas ocupadas en este momento'
-              }
+                ? `${totalLibres} ${totalLibres === 1 ? 'aula disponible ahora' : 'aulas disponibles ahora'}`
+                : 'Todas ocupadas en este momento'}
             </p>
           </div>
         </div>
-        {puedeAnadir && (
-          <button className="btn btn-primary btn-sm" onClick={() => setModalAddAula(true)}
-            style={{ flexShrink:0, alignSelf: isMobile ? 'stretch' : 'auto' }}>
-            <Plus size={15} /> Añadir aula
-          </button>
-        )}
+
+        <div style={{
+          display:'flex',
+          gap: isMobile ? 18 : 28,
+          alignItems: 'flex-end',
+          flexWrap: 'wrap',
+        }}>
+          <div>
+            <div style={{ fontSize:11, color:'var(--text3)', textTransform:'uppercase', letterSpacing:'.6px', fontWeight:700, marginBottom:4 }}>Mis reservas hoy</div>
+            <div style={{ fontSize:22, fontWeight:600, color:'var(--text)', lineHeight:1 }}>{reservasHoy.length}</div>
+          </div>
+          <div>
+            <div style={{ fontSize:11, color:'var(--text3)', textTransform:'uppercase', letterSpacing:'.6px', fontWeight:700, marginBottom:4 }}>Total aulas</div>
+            <div style={{ fontSize:22, fontWeight:600, color:'var(--text)', lineHeight:1 }}>{aulas.length}</div>
+          </div>
+          {puedeAnadir && (
+            <button className="btn btn-primary btn-sm" onClick={() => setModalAddAula(true)}
+              style={{ flexShrink:0, alignSelf: isMobile ? 'stretch' : 'flex-end' }}>
+              <Plus size={15} /> Añadir aula
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* ──────────── Filtros pill ──────────── */}
-      <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginBottom: 22, overflowX: isMobile ? 'auto' : 'visible' }}>
+      {/* ──────── FILTROS PILL ──────── */}
+      <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginBottom: 18, overflowX: isMobile ? 'auto' : 'visible' }}>
         {filtros.map(f => {
           const activo = filtro === f.key
           return (
@@ -177,7 +205,7 @@ export default function Aulas({ toast }) {
         })}
       </div>
 
-      {/* ──────────── Grid ──────────── */}
+      {/* ──────── GRID DE AULAS ──────── */}
       {aulasFiltradas.length === 0 ? (
         <div style={{ textAlign:'center', padding:'56px 20px', color:'var(--text3)' }}>
           <p style={{ fontSize:14 }}>No hay aulas en esta categoría.</p>
@@ -187,13 +215,14 @@ export default function Aulas({ toast }) {
           display:'grid',
           gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 260px), 1fr))',
           gap: 12,
+          marginBottom: 28,
         }}>
           {aulasFiltradas.map((aula, idx) => {
-            const res    = aula.reserva
+            const res     = aula.reserva
             const ocupada = !!res
-            const icono  = ICONOS[aula.tipo]  || <Monitor size={20} />
-            const paleta = PALETA[aula.tipo]  || { bg:'#f1f5f9', fg:'#475569' }
-            const misHoy = reservas.filter(r => r.aula_id === aula.id && r.fecha === TODAY)
+            const icono   = ICONOS[aula.tipo]  || <Monitor size={22} />
+            const paleta  = PALETAS[aula.tipo] || PALETA_DEFAULT
+            const misHoy  = reservas.filter(r => r.aula_id === aula.id && r.fecha === TODAY)
 
             return (
               <AulaCard
@@ -214,16 +243,36 @@ export default function Aulas({ toast }) {
         </div>
       )}
 
-      {/* ──────────── Mis reservas hoy ──────────── */}
-      <section style={{ marginTop: 36 }}>
-        <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:14 }}>
-          <Calendar size={16} style={{ color:'var(--text3)' }} />
-          <h2 style={{ fontSize:14, fontWeight:600, color:'var(--text2)', letterSpacing:'.2px' }}>Mis reservas de hoy</h2>
-        </div>
+      {/* ──────── MINI STATS DE TU DÍA ──────── */}
+      <div style={{
+        display:'grid',
+        gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
+        gap: 12,
+        marginBottom: 28,
+      }}>
+        <MiniStat
+          label="Tu próxima clase"
+          icon={<Clock size={14} />}
+          value={proximaReserva
+            ? `${proximaReserva.aula_nombre} · ${proximaReserva.hora_inicio}`
+            : 'Sin más reservas hoy'
+          }
+          highlight={!!proximaReserva}
+        />
+        <MiniStat
+          label="Reservas totales hoy"
+          icon={<Calendar size={14} />}
+          value={`${reservasHoy.length} reserva${reservasHoy.length !== 1 ? 's' : ''}`}
+        />
+      </div>
+
+      {/* ──────── MIS RESERVAS HOY ──────── */}
+      <section style={{ marginBottom: 22 }}>
+        <SectionHeader icon={<Calendar size={15} />} title="Mis reservas de hoy" />
         <div style={{ background:'var(--white)', border:'1px solid var(--border)', borderRadius:14, overflow:'hidden' }}>
-          {reservas.filter(r => r.fecha === TODAY).length === 0 ? (
+          {reservasHoy.length === 0 ? (
             <p style={{ color:'var(--text3)', fontSize:14, padding:'16px 20px' }}>No tienes reservas para hoy.</p>
-          ) : reservas.filter(r => r.fecha === TODAY).map((r, i, arr) => (
+          ) : reservasHoy.map((r, i, arr) => (
             <div key={r.id} style={{
               display:'flex',
               flexWrap:'wrap',
@@ -242,17 +291,17 @@ export default function Aulas({ toast }) {
         </div>
       </section>
 
-      {/* ──────────── Historial ──────────── */}
-      <section style={{ marginTop: 22 }}>
+      {/* ──────── HISTORIAL ──────── */}
+      <section style={{ marginBottom: 22 }}>
         <HistorialReservas toast={toast} />
       </section>
 
-      {/* ──────────── Baños ──────────── */}
-      <section style={{ marginTop: 22 }}>
+      {/* ──────── BAÑOS ──────── */}
+      <section style={{ marginBottom: 22 }}>
         <BanoPanel toast={toast} />
       </section>
 
-      {/* ──────────── Modal añadir ──────────── */}
+      {/* ──────── MODAL AÑADIR ──────── */}
       <Modal open={modalAddAula} onClose={() => setModalAddAula(false)} title="Añadir nueva aula">
         <form onSubmit={handleAddAula}>
           <div className="form-group">
@@ -278,7 +327,7 @@ export default function Aulas({ toast }) {
         </form>
       </Modal>
 
-      {/* ──────────── Detalle aula ──────────── */}
+      {/* ──────── DETALLE AULA ──────── */}
       {aulaDetalle && (
         <AulaDetalle
           aula={aulaDetalle}
@@ -291,7 +340,7 @@ export default function Aulas({ toast }) {
   )
 }
 
-/* ============== Subcomponente: tarjeta de aula ============== */
+/* ============== Tarjeta de aula ============== */
 function AulaCard({ aula, ocupada, res, icono, paleta, misHoy, puedeAnadir, onClick, onBorrar, indexAnim }) {
   const [hover, setHover] = useState(false)
 
@@ -301,10 +350,11 @@ function AulaCard({ aula, ocupada, res, icono, paleta, misHoy, puedeAnadir, onCl
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{
+        position:'relative',
         background:'var(--white)',
         border:'1px solid var(--border)',
         borderRadius: 14,
-        padding: 16,
+        padding: 18,
         cursor: ocupada ? 'default' : 'pointer',
         opacity: ocupada ? 0.72 : 1,
         transform: hover && !ocupada ? 'translateY(-3px)' : 'translateY(0)',
@@ -312,16 +362,26 @@ function AulaCard({ aula, ocupada, res, icono, paleta, misHoy, puedeAnadir, onCl
           ? '0 10px 28px rgba(5,150,105,.10), 0 2px 6px rgba(0,0,0,.04)'
           : '0 1px 2px rgba(0,0,0,.02)',
         transition:'transform .22s cubic-bezier(.16,1,.3,1), box-shadow .22s, opacity .15s',
-        animation: `fadeInUp .35s ease both`,
+        animation: 'fadeInUp .35s ease both',
         animationDelay: `${Math.min(indexAnim * 30, 250)}ms`,
         minWidth: 0,
         display:'flex', flexDirection:'column', gap:14,
+        overflow:'hidden',
       }}
     >
+      {/* Barra superior de color (acento) */}
+      <div style={{
+        position:'absolute',
+        top:0, left:0, right:0,
+        height:3,
+        background: paleta.accent,
+        opacity: ocupada ? 0.45 : 1,
+      }} />
+
       {/* Cabecera: icono + nombre + papelera */}
-      <div style={{ display:'flex', alignItems:'flex-start', gap:12 }}>
+      <div style={{ display:'flex', alignItems:'flex-start', gap:12, marginTop: 4 }}>
         <div style={{
-          width:42, height:42, borderRadius:12,
+          width:44, height:44, borderRadius:12,
           background: paleta.bg, color: paleta.fg,
           display:'flex', alignItems:'center', justifyContent:'center',
           flexShrink:0,
@@ -330,10 +390,10 @@ function AulaCard({ aula, ocupada, res, icono, paleta, misHoy, puedeAnadir, onCl
           {icono}
         </div>
         <div style={{ flex:1, minWidth:0 }}>
-          <div style={{ fontSize:15, fontWeight:600, letterSpacing:'-0.2px', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+          <div style={{ fontSize:16, fontWeight:600, letterSpacing:'-0.2px', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
             {aula.nombre}
           </div>
-          <div style={{ fontSize:12, color:'var(--text3)', marginTop:2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+          <div style={{ fontSize:12, color:'var(--text3)', marginTop:3, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
             {aula.tipo} · {aula.capacidad} alumnos
           </div>
         </div>
@@ -395,6 +455,52 @@ function AulaCard({ aula, ocupada, res, icono, paleta, misHoy, puedeAnadir, onCl
           </>
         )}
       </div>
+    </div>
+  )
+}
+
+/* ============== Mini stat tipo "Apple" ============== */
+function MiniStat({ label, value, icon, highlight }) {
+  return (
+    <div style={{
+      background: highlight ? '#ECFDF5' : 'var(--surface)',
+      border: `1px solid ${highlight ? '#86EFAC' : 'var(--border)'}`,
+      borderRadius: 12,
+      padding: '14px 16px',
+      transition:'background .2s',
+    }}>
+      <div style={{
+        fontSize: 11, fontWeight: 700,
+        color: 'var(--text3)',
+        textTransform: 'uppercase',
+        letterSpacing: '.6px',
+        marginBottom: 5,
+        display:'flex', alignItems:'center', gap:6,
+      }}>
+        {icon} {label}
+      </div>
+      <div style={{
+        fontSize: 14, fontWeight: 600,
+        color: highlight ? 'var(--primary-dark)' : 'var(--text)',
+      }}>
+        {value}
+      </div>
+    </div>
+  )
+}
+
+/* ============== Cabecera de sección ============== */
+function SectionHeader({ icon, title }) {
+  return (
+    <div style={{
+      display:'flex',
+      alignItems:'center',
+      gap:8,
+      marginBottom:12,
+      color:'var(--text3)',
+    }}>
+      {icon}
+      <h2 style={{ fontSize:14, fontWeight:600, color:'var(--text2)', letterSpacing:'.2px', margin:0 }}>{title}</h2>
     </div>
   )
 }
