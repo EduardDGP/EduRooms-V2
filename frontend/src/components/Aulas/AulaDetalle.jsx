@@ -2,11 +2,11 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../../hooks/useAuth'
 import { useIsMobile } from '../../hooks/useIsMobile'
 import { useConfirm } from '../shared/ConfirmDialog'
+import { useFranjas } from '../../hooks/useFranjas'
 import { getReservasAula, crearReserva, cancelarReserva } from '../../api/client'
-import { FRANJAS_RESERVABLES } from '../../config/franjas'
 import Modal from '../shared/Modal'
 import {
-  X, ChevronLeft, ChevronRight, Calendar,
+  X, ChevronLeft, ChevronRight, Calendar, Clock,
   Monitor, Atom, Dna, FlaskConical, Wrench, Bot, School,
 } from 'lucide-react'
 import { todayISO, toLocalISO } from '../../utils/fecha'
@@ -34,6 +34,7 @@ export default function AulaDetalle({ aula, onClose, toast, onReservaChange }) {
   const { user }   = useAuth()
   const isMobile   = useIsMobile()
   const confirmar  = useConfirm()
+  const { franjas, loading: loadingFranjas } = useFranjas()
   const [fecha,     setFecha]     = useState(TODAY)
   const [reservas,  setReservas]  = useState([])
   const [loading,   setLoading]   = useState(false)
@@ -58,23 +59,29 @@ export default function AulaDetalle({ aula, onClose, toast, onReservaChange }) {
     finally { setLoading(false) }
   }
 
+  // Mapear reservas: el backend guarda franja_id. Generamos un ID estable a partir de orden.
   const reservaMap = {}
-  reservas.forEach(r => { reservaMap[r.franja_id] = r })
+  reservas.forEach(r => {
+    // Usamos hora_inicio como clave (es lo más estable entre cambios de orden)
+    reservaMap[r.hora_inicio] = r
+  })
 
   async function handleReservar(e) {
     e.preventDefault()
     if (!modal) return
     setGuardando(true)
     try {
+      // Generar un franja_id estable a partir del orden (h1, h2, ...)
+      const franjaId = `f${modal.orden}`
       await crearReserva({
         aula_id:      aula.id,
         asignatura,
         fecha,
-        franja_id:    modal.id,
+        franja_id:    franjaId,
         franja_label: modal.label,
         franja_orden: modal.orden,
-        hora_inicio:  modal.inicio,
-        hora_fin:     modal.fin,
+        hora_inicio:  modal.hora_inicio,
+        hora_fin:     modal.hora_fin,
       })
       toast(`Reserva confirmada — ${modal.label}`, 'success')
       setModal(null)
@@ -103,7 +110,7 @@ export default function AulaDetalle({ aula, onClose, toast, onReservaChange }) {
   }
 
   function cambiarDia(delta) {
-    const d = new Date(fecha + 'T12:00:00')   // mediodía local para evitar líos de zona
+    const d = new Date(fecha + 'T12:00:00')
     d.setDate(d.getDate() + delta)
     const nueva = toLocalISO(d)
     if (nueva >= TODAY) setFecha(nueva)
@@ -116,7 +123,9 @@ export default function AulaDetalle({ aula, onClose, toast, onReservaChange }) {
 
   const icono = ICONOS[aula.tipo] || <School size={24} />
 
-  // Estilos del contenedor según dispositivo
+  // Ordenar las franjas por hora
+  const franjasOrdenadas = [...franjas].sort((a, b) => a.orden - b.orden)
+
   const containerStyle = isMobile
     ? {
         position:'fixed', inset:0, background:'#fff',
@@ -240,13 +249,20 @@ export default function AulaDetalle({ aula, onClose, toast, onReservaChange }) {
           flex: isMobile ? 1 : 'none',
           overflowY: isMobile ? 'auto' : 'visible',
         }}>
-          {loading ? (
+          {(loading || loadingFranjas) ? (
             <p style={{ color:'var(--text3)', fontSize:14, padding:20 }}>Cargando...</p>
+          ) : franjasOrdenadas.length === 0 ? (
+            <div style={{ textAlign:'center', padding:'40px 20px', color:'var(--text3)' }}>
+              <Clock size={32} style={{ opacity:.3, marginBottom:10 }} />
+              <p style={{ fontSize:14 }}>No hay franjas configuradas en este centro.</p>
+              <p style={{ fontSize:13, marginTop:6 }}>El director debe configurarlas en el panel de administración.</p>
+            </div>
           ) : (
-            FRANJAS_RESERVABLES.map(franja => {
-              const res    = reservaMap[franja.id]
-              const isMine = res && res.profesor_id === user.id
-              const libre  = !res
+            franjasOrdenadas.map(franja => {
+              const reservable = !!franja.reservable
+              const res        = reservaMap[franja.hora_inicio]
+              const isMine     = res && res.profesor_id === user.id
+              const libre      = !res
 
               return (
                 <div key={franja.id} style={{
@@ -256,21 +272,33 @@ export default function AulaDetalle({ aula, onClose, toast, onReservaChange }) {
                   gap: isMobile ? 10 : 14,
                   padding: isMobile ? 14 : '14px 16px',
                   borderRadius:10,
-                  border:`1.5px solid ${libre ? 'var(--border)' : isMine ? '#bfdbfe' : '#fecaca'}`,
-                  background: libre ? 'var(--surface)' : isMine ? '#eff6ff' : '#fff5f5',
+                  border:`1.5px solid ${
+                    !reservable ? 'var(--border)' :
+                    libre ? 'var(--border)' :
+                    isMine ? '#bfdbfe' : '#fecaca'
+                  }`,
+                  background:
+                    !reservable ? 'var(--surface)' :
+                    libre ? 'var(--surface)' :
+                    isMine ? '#eff6ff' : '#fff5f5',
+                  opacity: reservable ? 1 : 0.65,
                   transition:'all .15s',
                 }}>
-                  {/* Fila superior en móvil, todo en línea en desktop */}
+                  {/* Fila superior */}
                   <div style={{ display:'flex', alignItems:'center', gap:14, minWidth:0, flex:1 }}>
                     <div style={{ width:80, flexShrink:0 }}>
                       <div style={{ fontWeight:700, fontSize:13, color:'var(--text)' }}>{franja.label}</div>
                       <div style={{ fontSize:11, color:'var(--text3)', fontFamily:'Fira Code, monospace' }}>
-                        {franja.inicio}–{franja.fin}
+                        {franja.hora_inicio}–{franja.hora_fin}
                       </div>
                     </div>
 
                     <div style={{ flex:1, minWidth:0 }}>
-                      {libre ? (
+                      {!reservable ? (
+                        <span style={{ fontSize:13, color:'var(--text3)', fontWeight:600, fontStyle:'italic' }}>
+                          No reservable
+                        </span>
+                      ) : libre ? (
                         <span style={{ fontSize:13, color:'var(--green)', fontWeight:600 }}>● Disponible</span>
                       ) : (
                         <div style={{ minWidth:0 }}>
@@ -283,8 +311,8 @@ export default function AulaDetalle({ aula, onClose, toast, onReservaChange }) {
                     </div>
                   </div>
 
-                  {/* Botón de acción — a ancho completo en móvil, al lado en desktop */}
-                  {(libre || isMine) && (
+                  {/* Acción solo si es reservable y procede */}
+                  {reservable && (libre || isMine) && (
                     <div style={{ flexShrink:0, width: isMobile ? '100%' : 'auto' }}>
                       {libre && (
                         <button className="btn btn-primary btn-sm" disabled={esPasado}
@@ -314,7 +342,7 @@ export default function AulaDetalle({ aula, onClose, toast, onReservaChange }) {
       </div>
 
       {/* Modal reservar franja */}
-      <Modal open={!!modal} onClose={() => setModal(null)} title={modal ? `Reservar — ${modal.label} (${modal.inicio}–${modal.fin})` : ''}>
+      <Modal open={!!modal} onClose={() => setModal(null)} title={modal ? `Reservar — ${modal.label} (${modal.hora_inicio}–${modal.hora_fin})` : ''}>
         <form onSubmit={handleReservar}>
           <div style={{ background:'var(--primary-pale)', borderRadius:8, padding:'10px 14px', marginBottom:18, fontSize:13, color:'var(--primary)', display:'flex', alignItems:'center', gap:8 }}>
             <Calendar size={14} /> <span style={{ textTransform:'capitalize' }}>{fechaLabel}</span> · {aula.nombre}

@@ -2,14 +2,15 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { useIsMobile } from '../hooks/useIsMobile'
 import { useConfirm } from '../components/shared/ConfirmDialog'
+import { useFranjas } from '../hooks/useFranjas'
 import { getGuardias, crearGuardia, cubrirGuardia, cancelarCobertura, eliminarGuardia } from '../api/client'
-import { FRANJAS_RESERVABLES } from '../config/franjas'
 import { Clock, Calendar, School, MapPin, FileText, Shield, AlertTriangle, Hand, Trash2, Plus, Megaphone, X } from 'lucide-react'
 import Modal from '../components/shared/Modal'
+import { todayISO } from '../utils/fecha'
 
 const CURSOS = ['1º ESO','2º ESO','3º ESO','4º ESO','1º Bach','2º Bach','FP Básica','CFGM','CFGS']
 const GRUPOS = ['A','B','C','D','E']
-const TODAY  = new Date().toISOString().split('T')[0]
+const TODAY  = todayISO()
 
 function EstadoBadge({ guardia, userId }) {
   if (guardia.cubierta_por) {
@@ -31,6 +32,7 @@ export default function Guardias({ toast }) {
   const { user }    = useAuth()
   const isMobile    = useIsMobile()
   const confirmar   = useConfirm()
+  const { franjas } = useFranjas()
   const [guardias,  setGuardias]  = useState([])
   const [loading,   setLoading]   = useState(true)
   const [filtro,    setFiltro]    = useState('pendientes')
@@ -39,6 +41,9 @@ export default function Guardias({ toast }) {
   const [form,      setForm]      = useState({
     fecha: TODAY, franja_id:'', curso:'', grupo:'A', aula:'', instrucciones:''
   })
+
+  // Solo franjas reservables (las no reservables no tienen sentido para una guardia)
+  const franjasReservables = franjas.filter(f => f.reservable === 1).sort((a, b) => a.orden - b.orden)
 
   useEffect(() => {
     cargar()
@@ -55,7 +60,7 @@ export default function Guardias({ toast }) {
 
   async function handleCrear(e) {
     e.preventDefault()
-    const franja = FRANJAS_RESERVABLES.find(f => f.id === form.franja_id)
+    const franja = franjasReservables.find(f => `f${f.orden}` === form.franja_id)
     if (!franja) { toast('Selecciona una franja horaria', 'error'); return }
     setGuardando(true)
     try {
@@ -63,8 +68,8 @@ export default function Guardias({ toast }) {
         ...form,
         franja_label: franja.label,
         franja_orden: franja.orden,
-        hora_inicio:  franja.inicio,
-        hora_fin:     franja.fin,
+        hora_inicio:  franja.hora_inicio,
+        hora_fin:     franja.hora_fin,
       })
       toast('Guardia registrada — tus compañeros han sido notificados', 'success')
       setModal(false)
@@ -153,7 +158,7 @@ export default function Guardias({ toast }) {
         </button>
       </div>
 
-      {/* Filtros — select en móvil, pills en desktop */}
+      {/* Filtros */}
       {isMobile ? (
         <select value={filtro} onChange={e => setFiltro(e.target.value)} style={{
           width:'100%', padding:'10px 12px', borderRadius:10, border:'1.5px solid var(--border)',
@@ -202,7 +207,6 @@ export default function Guardias({ toast }) {
                   gap: isMobile ? 14 : 16,
                 }}>
                   <div style={{ flex:1, minWidth:0 }}>
-                    {/* Cabecera */}
                     <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:12, flexWrap:'wrap' }}>
                       <div style={{ fontWeight:700, fontSize:15, color:'var(--text)' }}>
                         {g.prof_nombre} {g.prof_apellidos}
@@ -211,7 +215,6 @@ export default function Guardias({ toast }) {
                       <EstadoBadge guardia={g} userId={user.id} />
                     </div>
 
-                    {/* Detalles */}
                     <div style={{ display:'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(auto-fill, minmax(160px,1fr))', gap:10, marginBottom: g.instrucciones ? 14 : 0 }}>
                       {[
                         { icon: <Calendar size={12}/>, label:'Fecha',  value: fechaLabel },
@@ -233,7 +236,6 @@ export default function Guardias({ toast }) {
                     )}
                   </div>
 
-                  {/* Acciones */}
                   <div style={{
                     display:'flex',
                     flexDirection: isMobile ? 'row' : 'column',
@@ -276,10 +278,15 @@ export default function Guardias({ toast }) {
               <label>Franja horaria</label>
               <select value={form.franja_id} onChange={e => setForm(f => ({...f, franja_id:e.target.value}))} required>
                 <option value="">— Selecciona —</option>
-                {FRANJAS_RESERVABLES.map(f => (
-                  <option key={f.id} value={f.id}>{f.label} ({f.inicio}–{f.fin})</option>
+                {franjasReservables.map(f => (
+                  <option key={f.id} value={`f${f.orden}`}>{f.label} ({f.hora_inicio}–{f.hora_fin})</option>
                 ))}
               </select>
+              {franjasReservables.length === 0 && (
+                <p style={{ fontSize:12, color:'var(--red)', marginTop:6 }}>
+                  Tu centro no tiene franjas reservables configuradas. Contacta con el director.
+                </p>
+              )}
             </div>
           </div>
 
@@ -319,7 +326,7 @@ export default function Guardias({ toast }) {
 
           <div style={{ display:'flex', gap:10, justifyContent:'flex-end', flexWrap:'wrap' }}>
             <button type="button" className="btn btn-outline btn-sm" onClick={() => setModal(false)}>Cancelar</button>
-            <button type="submit" className="btn btn-primary btn-sm" disabled={guardando}>
+            <button type="submit" className="btn btn-primary btn-sm" disabled={guardando || franjasReservables.length === 0}>
               {guardando ? 'Registrando...' : 'Registrar ausencia'}
             </button>
           </div>
