@@ -428,12 +428,6 @@ export default function Admin({ toast }) {
                         </div>
                       </div>
                     )}
-                    {/* Horario del centro */}
-                    {tab === 'horario' && (
-                      <div className="card" style={{ maxWidth: 760 }}>
-                        <EditorHorario toast={toast} />
-                      </div>
-                    )}
                   </div>    
 
                   {/* Zona de peligro (baja del centro) */}
@@ -462,6 +456,14 @@ export default function Admin({ toast }) {
           ) : (
             <p style={{ color:'var(--text3)' }}>Cargando info del centro...</p>
           )}
+        </div>
+      )}
+
+      
+       {/* Horario del centro */}
+      {tab === 'horario' && (
+        <div className="card" style={{ maxWidth: 760 }}>
+          <EditorHorario toast={toast} />
         </div>
       )}
     </div>
