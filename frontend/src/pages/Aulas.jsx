@@ -11,6 +11,7 @@ import {
   Monitor, Atom, Dna, FlaskConical, Wrench, Bot,
   User, BookOpen, Calendar, Plus, Trash2,
 } from 'lucide-react'
+import { todayISO } from '../utils/fecha'
 
 const TIPOS = [
   { value:'Informática',             label:'Informática'             },
@@ -40,7 +41,7 @@ const PALETA = {
   'Sala de Robótica':        { bg:'#e0f2fe', fg:'#0369a1' },
 }
 
-const TODAY = new Date().toISOString().split('T')[0]
+const TODAY = todayISO()
 
 export default function Aulas({ toast }) {
   const { user }   = useAuth()

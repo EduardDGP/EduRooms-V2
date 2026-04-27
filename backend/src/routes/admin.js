@@ -285,4 +285,95 @@ router.delete('/superadmin/centros/:id', soloSuperadmin, (req, res) => {
   res.json({ ok: true })
 })
 
+// ══════════════════════════════════════════════════════════
+// FRANJAS HORARIAS DEL CENTRO
+// ══════════════════════════════════════════════════════════
+
+// Middleware: solo director o jefe de estudios
+function soloDireccion(req, res, next) {
+  const db       = getDB()
+  const profesor = db.prepare('SELECT rol FROM profesores WHERE id = ?').get(req.profesorId)
+  if (!profesor) return res.status(401).json({ error: 'Usuario no encontrado' })
+  if (!['director', 'jefe_estudios'].includes(profesor.rol)) {
+    return res.status(403).json({ error: 'Solo el director o el jefe de estudios pueden gestionar el horario' })
+  }
+  next()
+}
+
+// ── GET /api/admin/franjas ────────────────────────────────
+router.get('/franjas', soloDireccion, (req, res) => {
+  const db = getDB()
+  const franjas = db.prepare(`
+    SELECT id, orden, label, hora_inicio, hora_fin, reservable
+    FROM franjas_centro
+    WHERE centro_id = ?
+    ORDER BY orden ASC
+  `).all(req.centroId)
+  res.json(franjas)
+})
+
+// ── GET /api/admin/franjas/preview-impacto ────────────────
+// Cuenta cuántas reservas/guardias futuras hay (para avisar al director antes de guardar)
+router.get('/franjas/preview-impacto', soloDireccion, (req, res) => {
+  const db = getDB()
+  const hoy = new Date().toISOString().split('T')[0]
+  const reservas = db.prepare('SELECT COUNT(*) as n FROM reservas WHERE centro_id = ? AND fecha >= ?').get(req.centroId, hoy)
+  const guardias = db.prepare('SELECT COUNT(*) as n FROM guardias WHERE centro_id = ? AND fecha >= ?').get(req.centroId, hoy)
+  res.json({ reservas_futuras: reservas.n, guardias_futuras: guardias.n })
+})
+
+// ── PUT /api/admin/franjas ────────────────────────────────
+// Reemplaza el horario completo del centro
+router.put('/franjas', soloDireccion, (req, res) => {
+  const { franjas } = req.body
+  if (!Array.isArray(franjas)) return res.status(400).json({ error: 'Formato inválido' })
+  if (franjas.length === 0)    return res.status(400).json({ error: 'Debe haber al menos una franja' })
+  if (franjas.length > 20)     return res.status(400).json({ error: 'Demasiadas franjas (máx 20)' })
+
+  // Validar cada franja
+  for (let i = 0; i < franjas.length; i++) {
+    const f = franjas[i]
+    if (!f.label?.trim())          return res.status(400).json({ error: `Franja ${i+1}: nombre obligatorio` })
+    if (!/^\d{2}:\d{2}$/.test(f.hora_inicio || '')) return res.status(400).json({ error: `Franja ${i+1}: hora de inicio inválida` })
+    if (!/^\d{2}:\d{2}$/.test(f.hora_fin || ''))    return res.status(400).json({ error: `Franja ${i+1}: hora de fin inválida` })
+    if (f.hora_fin <= f.hora_inicio) return res.status(400).json({ error: `Franja ${i+1}: la hora de fin debe ser posterior al inicio` })
+  }
+
+  // Validar que no haya solapamientos (las franjas deben estar ordenadas y no superponerse)
+  const ordenadas = [...franjas].sort((a, b) => (a.hora_inicio).localeCompare(b.hora_inicio))
+  for (let i = 1; i < ordenadas.length; i++) {
+    if (ordenadas[i].hora_inicio < ordenadas[i-1].hora_fin) {
+      return res.status(400).json({
+        error: `Las franjas "${ordenadas[i-1].label}" y "${ordenadas[i].label}" se solapan`
+      })
+    }
+  }
+
+  const db = getDB()
+  const guardar = db.transaction(() => {
+    db.prepare('DELETE FROM franjas_centro WHERE centro_id = ?').run(req.centroId)
+    const insert = db.prepare(`
+      INSERT INTO franjas_centro (centro_id, orden, label, hora_inicio, hora_fin, reservable)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `)
+    ordenadas.forEach((f, idx) => {
+      insert.run(
+        req.centroId,
+        idx + 1,
+        f.label.trim(),
+        f.hora_inicio,
+        f.hora_fin,
+        f.reservable ? 1 : 0
+      )
+    })
+  })
+  guardar()
+
+  const nuevas = db.prepare(`
+    SELECT id, orden, label, hora_inicio, hora_fin, reservable
+    FROM franjas_centro WHERE centro_id = ? ORDER BY orden ASC
+  `).all(req.centroId)
+  res.json({ ok: true, mensaje: 'Horario actualizado', franjas: nuevas })
+})
+
 module.exports = router

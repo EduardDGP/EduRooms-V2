@@ -9,8 +9,9 @@ import {
   X, ChevronLeft, ChevronRight, Calendar,
   Monitor, Atom, Dna, FlaskConical, Wrench, Bot, School,
 } from 'lucide-react'
+import { todayISO, toLocalISO } from '../../utils/fecha'
 
-const TODAY = new Date().toISOString().split('T')[0]
+const TODAY = todayISO()
 
 const ICONOS = {
   'Informática':             <Monitor size={24} />,
@@ -102,9 +103,9 @@ export default function AulaDetalle({ aula, onClose, toast, onReservaChange }) {
   }
 
   function cambiarDia(delta) {
-    const d = new Date(fecha)
+    const d = new Date(fecha + 'T12:00:00')   // mediodía local para evitar líos de zona
     d.setDate(d.getDate() + delta)
-    const nueva = d.toISOString().split('T')[0]
+    const nueva = toLocalISO(d)
     if (nueva >= TODAY) setFecha(nueva)
   }
 
