@@ -2,9 +2,9 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { useIsMobile } from '../hooks/useIsMobile'
 import { useConfirm } from '../components/shared/ConfirmDialog'
-import { Clock, Users, XCircle, Briefcase, Building2, CheckCircle2, UserCheck, UserX, Trash2, Upload, AlertTriangle, Mail, BookOpen, Ban, ShieldCheck, Crown, Send } from 'lucide-react'
+import { Clock, Users, XCircle, Briefcase, Building2, CheckCircle2, UserCheck, UserX, Trash2, Upload, AlertTriangle, Mail, BookOpen, Ban, ShieldCheck, Crown, Send, Calendar } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-
+import EditorHorario from '../components/Admin/EditorHorario'
 
 const BASE = '/api'
 const req = (method, path, body) =>
@@ -201,6 +201,7 @@ export default function Admin({ toast }) {
     { key:'rechazados', label:`Rechazados (${rechazados.length})` },
     { key:'jefes',      label:`Jefes Est. (${jefes.length})`      },
     { key:'centro',     label:`Mi Centro`                         },
+    { key:'horario',    label:`Horario`                           },
   ]
 
   return (
@@ -427,7 +428,13 @@ export default function Admin({ toast }) {
                         </div>
                       </div>
                     )}
-                  </div>
+                    {/* Horario del centro */}
+                    {tab === 'horario' && (
+                      <div className="card" style={{ maxWidth: 760 }}>
+                        <EditorHorario toast={toast} />
+                      </div>
+                    )}
+                  </div>    
 
                   {/* Zona de peligro (baja del centro) */}
                   <div style={{ marginTop:24, paddingTop:20, borderTop:'1px solid var(--border)' }}>
